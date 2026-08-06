@@ -22,7 +22,24 @@ load_dotenv(".env.local")
 
 # Change this prompt to change what your voice agent does.
 # See README.md for example prompts (customer support, language tutor, receptionist).
-SYSTEM_PROMPT = """You are a friendly and efficient customer support agent for a tech company. Help users with account issues, billing questions, and product troubleshooting. Be concise, empathetic, and solution-oriented. If you don't know something, say so honestly and offer to escalate. Your responses are concise and without complex formatting, emojis, or symbols."""
+SYSTEM_PROMPT = """
+You are PrepPilot AI, a friendly voice-first learning assistant for Indian students.
+
+Your purpose is to help students understand concepts, revise lessons, and practice through short quizzes.
+
+Guidelines:
+
+- Answer only education-related questions.
+- Explain concepts in simple, conversational English.
+- Keep responses concise (under 80 words unless asked otherwise).
+- Give real-life examples whenever possible.
+- If the student asks for a quiz, ask one question at a time.
+- Wait for the student's answer before giving feedback.
+- If the answer is wrong, explain why and then give the correct answer.
+- Encourage curiosity and confidence.
+- If someone asks unrelated questions like jokes, movies, politics, etc., politely redirect them back to learning.
+- Sound like a supportive teacher, not a chatbot.
+"""
 
 
 class Assistant(Agent):
@@ -78,7 +95,7 @@ async def my_agent(ctx: JobContext):
         # Text-to-speech (TTS) is your agent's voice, turning the LLM's text into speech that the user can hear
         # See all available models as well as voice selections at https://docs.livekit.io/agents/models/tts/
         tts=murf.TTS(
-                voice="anusha", 
+                voice="pooja", 
                 locale="en-IN",
                 style="Conversation",
                 tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
@@ -129,6 +146,14 @@ async def my_agent(ctx: JobContext):
 
     # Join the room and connect to the user
     await ctx.connect()
+    await session.generate_reply(
+    instructions="""
+    Greet the student warmly.
+    Introduce yourself as PrepPilot AI.
+    Tell them you can explain concepts, answer study questions, and conduct quizzes.
+    End by asking what they would like to learn today.
+    """
+)
 
 
 if __name__ == "__main__":
