@@ -1,0 +1,359 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowUpRight,
+  BookOpenCheck,
+  BrainCircuit,
+  Languages,
+  MessageSquareText,
+  Mic,
+  MicOff,
+  PhoneOff,
+  Sparkles,
+  Zap,
+} from "lucide-react";
+
+import { AnimatedBackground } from "@/components/preppilot/AnimatedBackground";
+import { VoiceOrb, type VoicePhase } from "@/components/preppilot/VoiceOrb";
+import { Waveform } from "@/components/preppilot/Waveform";
+import { Button } from "@/components/ui/button";
+import { useLiveKitSession } from "@/hooks/useLiveKitSession";
+
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "PrepPilot AI — Voice-First AI Tutor for Indian Students" },
+      {
+        name: "description",
+        content:
+          "PrepPilot AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish.",
+      },
+      { property: "og:title", content: "PrepPilot AI — Voice-First AI Tutor" },
+      {
+        property: "og:description",
+        content:
+          "Talk to PrepPilot AI to learn concepts, revise lessons and take quizzes in English, Hindi or Hinglish.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
+  component: Index,
+});
+
+const PROMPTS = [
+  {
+    icon: BrainCircuit,
+    title: "Explain a concept",
+    prompt: "Explain Newton's second law with a cricket example.",
+  },
+  {
+    icon: BookOpenCheck,
+    title: "Revise a lesson",
+    prompt: "Revise Class 10 Chemistry: acids, bases and salts.",
+  },
+  {
+    icon: Sparkles,
+    title: "Quiz me",
+    prompt: "Quiz me with 5 questions on Trigonometry basics.",
+  },
+  {
+    icon: Languages,
+    title: "Hinglish mode",
+    prompt: "Photosynthesis ko Hinglish mein simple tarike se samjhao.",
+  },
+];
+
+const LANGUAGES = ["English", "हिन्दी", "Hinglish"];
+
+const PHASE_COPY: Record<VoicePhase, { label: string; hint: string }> = {
+  idle: { label: "Ready", hint: "Tap the orb to start talking with PrepPilot." },
+  connecting: { label: "Thinking", hint: "Waking up your tutor…" },
+  listening: { label: "Listening", hint: "Go ahead — speak in English, Hindi or Hinglish." },
+  user: { label: "Hearing you", hint: "Keep going, PrepPilot is following along." },
+  speaking: { label: "Speaking", hint: "PrepPilot is answering…" },
+};
+
+function Index() {
+  const {
+    level,
+    active,
+    status,
+    error,
+    toggle,
+    connect,
+    sendText,
+    turns,
+    agentSpeaking,
+    micEnabled,
+    toggleMic,
+  } = useLiveKitSession();
+  const [showTranscript, setShowTranscript] = useState(true);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const phase: VoicePhase = useMemo(() => {
+    if (status === "connecting") return "connecting";
+    if (!active) return "idle";
+    if (agentSpeaking) return "speaking";
+    return level > 0.06 ? "user" : "listening";
+  }, [status, active, agentSpeaking, level]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [turns.length, showTranscript]);
+
+  const askTopic = async (prompt: string) => {
+    const sent = await sendText(prompt);
+    if (!sent) await connect();
+  };
+
+  const copy = PHASE_COPY[phase];
+  const hasTurns = turns.length > 0;
+
+  return (
+    <>
+      <AnimatedBackground />
+
+      <div className="relative flex min-h-dvh flex-col overflow-x-hidden">
+        <header className="mx-auto grid w-full max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-5">
+          <a href="/" className="group flex min-w-0 items-center gap-3">
+            <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-brand shadow-[var(--glow-brand)] transition-transform duration-300 group-hover:scale-105">
+              <Sparkles className="relative z-10 h-5 w-5 text-primary-foreground" />
+              <span className="pointer-events-none absolute inset-0 rounded-2xl bg-linear-to-b from-white/40 to-transparent opacity-60" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate font-display text-lg font-bold tracking-tight">
+                PrepPilot AI
+              </span>
+              <span className="hidden text-[11px] tracking-[0.2em] text-muted-foreground uppercase sm:block">
+                Voice tutor
+              </span>
+            </span>
+          </a>
+
+          <span className="glass inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold tracking-wide">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span
+                className={`absolute inset-0 rounded-full ${
+                  phase === "idle"
+                    ? "bg-muted-foreground"
+                    : phase === "speaking"
+                      ? "bg-brand-purple"
+                      : "bg-brand-cyan"
+                }`}
+              />
+              {phase !== "idle" && (
+                <span
+                  className={`absolute inset-0 animate-ping rounded-full ${
+                    phase === "speaking" ? "bg-brand-purple" : "bg-brand-cyan"
+                  }`}
+                />
+              )}
+            </span>
+            {copy.label}
+          </span>
+        </header>
+
+        <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-5 pt-2 pb-44 sm:pb-48">
+          {/* Hero */}
+          {!hasTurns && (
+            <section className="animate-rise flex w-full flex-col items-center text-center">
+              <span className="glass-strong inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                <span className="h-1.5 w-1.5 rounded-full bg-gradient-brand" />
+                Murf · LiveKit · Gemini
+              </span>
+              <h1 className="mt-5 font-display text-4xl leading-[1.05] font-extrabold text-balance sm:text-6xl">
+                Your voice-first <span className="text-gradient">AI tutor</span>
+              </h1>
+              <p className="mt-4 max-w-lg text-base text-pretty text-muted-foreground sm:text-lg">
+                Explain concepts, revise lessons and take quizzes — just by talking.
+              </p>
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {LANGUAGES.map((l) => (
+                  <span
+                    key={l}
+                    className="glass rounded-full px-3.5 py-1.5 text-xs font-medium text-muted-foreground"
+                  >
+                    {l}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Conversation stage */}
+          <section className="flex w-full flex-col items-center py-8 sm:py-10">
+            <VoiceOrb level={level} phase={phase} onClick={toggle} />
+
+            <Waveform
+              level={level}
+              speaking={phase === "speaking"}
+              active={active}
+              className="mt-6 w-full max-w-md"
+            />
+
+            <p className="mt-2 min-h-6 text-sm text-muted-foreground">
+              {error ? <span className="text-destructive">{error}</span> : copy.hint}
+            </p>
+          </section>
+
+          {/* Suggested prompts */}
+          {!hasTurns && (
+            <section className="animate-rise w-full">
+              <p className="mb-3 text-center text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+                Try saying
+              </p>
+              <div className="grid w-full gap-3 sm:grid-cols-2">
+                {PROMPTS.map(({ icon: Icon, title, prompt }) => (
+                  <button
+                    key={title}
+                    type="button"
+                    onClick={() => void askTopic(prompt)}
+                    className="group glass relative flex items-start gap-3 overflow-hidden rounded-2xl p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:border-white/25 hover:shadow-[var(--glow-brand)]"
+                  >
+                    <span className="pointer-events-none absolute inset-0 bg-gradient-brand opacity-0 transition-opacity duration-300 group-hover:opacity-[0.08]" />
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-brand shadow-[var(--glow-brand)]">
+                      <Icon className="h-4.5 w-4.5 text-primary-foreground" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold">{title}</span>
+                      <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                        {prompt}
+                      </span>
+                    </span>
+                    <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100" />
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Live transcript */}
+          {hasTurns && showTranscript && (
+            <section className="animate-rise glass-strong mt-6 w-full rounded-3xl p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+                  Live transcript
+                </h2>
+                <span className="text-[11px] text-muted-foreground">{turns.length} turns</span>
+              </div>
+              <div
+                ref={scrollRef}
+                className="mt-4 max-h-[42vh] space-y-3 overflow-y-auto pr-1 [scrollbar-width:thin]"
+              >
+                {turns.map((t) => (
+                  <div
+                    key={t.id}
+                    className={`flex ${t.role === "agent" ? "justify-start" : "justify-end"}`}
+                  >
+                    <p
+                      className={`animate-rise max-w-[88%] px-4 py-2.5 text-sm leading-relaxed ${
+                        t.role === "agent"
+                          ? "glass rounded-2xl rounded-bl-md text-foreground"
+                          : "rounded-2xl rounded-br-md bg-gradient-brand text-primary-foreground shadow-[var(--glow-brand)]"
+                      }`}
+                    >
+                      {t.text}
+                    </p>
+                  </div>
+                ))}
+                {phase === "speaking" && (
+                  <div className="flex justify-start">
+                    <span className="glass flex items-center gap-1.5 rounded-2xl rounded-bl-md px-4 py-3">
+                      {[0, 1, 2].map((i) => (
+                        <span
+                          key={i}
+                          className="animate-think-dot h-1.5 w-1.5 rounded-full bg-foreground/70"
+                          style={{ animationDelay: `${i * 0.16}s` }}
+                        />
+                      ))}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Feature badges */}
+          {!hasTurns && (
+            <section className="animate-rise mt-10 grid w-full grid-cols-3 gap-3 text-center">
+              {[
+                { icon: Zap, label: "Instant", desc: "Voice replies" },
+                { icon: Languages, label: "3 Languages", desc: "English / Hindi / Hinglish" },
+                { icon: BookOpenCheck, label: "Adaptive", desc: "Quizzes & revision" },
+              ].map(({ icon: Icon, label, desc }) => (
+                <div
+                  key={label}
+                  className="glass flex flex-col items-center gap-2 rounded-2xl px-3 py-4"
+                >
+                  <Icon className="h-5 w-5 text-brand-cyan" />
+                  <div>
+                    <p className="text-xs font-semibold">{label}</p>
+                    <p className="text-[10px] text-muted-foreground">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
+        </main>
+
+        {/* Footer */}
+        {!hasTurns && (
+          <footer className="mx-auto w-full max-w-6xl px-5 py-6 pb-24 text-center text-xs text-muted-foreground sm:pb-28">
+            Built for Indian students · Murf Falcon · Gemini · LiveKit · Deepgram
+          </footer>
+        )}
+
+        {/* Floating controls */}
+        <div className="fixed inset-x-0 bottom-5 z-20 flex justify-center px-5 sm:bottom-7">
+          <div className="glass-strong flex items-center gap-2 rounded-full p-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={micEnabled ? "Mute microphone" : "Unmute microphone"}
+              disabled={!active}
+              onClick={() => void toggleMic()}
+              className="h-12 w-12 rounded-full transition-transform hover:scale-105 hover:bg-foreground/10 disabled:opacity-40"
+            >
+              {micEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+            </Button>
+
+            {active ? (
+              <Button
+                type="button"
+                onClick={toggle}
+                aria-label="End conversation"
+                className="h-12 rounded-full bg-destructive px-6 text-sm font-semibold text-destructive-foreground transition-transform hover:scale-[1.03] hover:bg-destructive/90"
+              >
+                <PhoneOff className="mr-2 h-4 w-4" /> End
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={toggle}
+                className="h-12 rounded-full bg-gradient-brand px-6 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.03]"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {status === "connecting" ? "Connecting…" : "Start Conversation"}
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={showTranscript ? "Hide transcript" : "Show transcript"}
+              onClick={() => setShowTranscript((v) => !v)}
+              className={`h-12 w-12 rounded-full transition-transform hover:scale-105 hover:bg-foreground/10 ${
+                showTranscript ? "text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              <MessageSquareText className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
