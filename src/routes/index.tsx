@@ -8,16 +8,23 @@ import {
   MessageSquareText,
   Mic,
   MicOff,
+  MonitorOff,
+  MonitorUp,
   PhoneOff,
+  SendHorizontal,
   Sparkles,
+  Video,
+  VideoOff,
   Zap,
 } from "lucide-react";
 
 import { AnimatedBackground } from "@/components/preppilot/AnimatedBackground";
+import { VideoTile } from "@/components/preppilot/VideoTile";
 import { VoiceOrb, type VoicePhase } from "@/components/preppilot/VoiceOrb";
 import { Waveform } from "@/components/preppilot/Waveform";
 import { Button } from "@/components/ui/button";
 import { useLiveKitSession } from "@/hooks/useLiveKitSession";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -87,8 +94,16 @@ function Index() {
     agentSpeaking,
     micEnabled,
     toggleMic,
+    cameraEnabled,
+    toggleCamera,
+    screenShareEnabled,
+    toggleScreenShare,
+    localVideo,
+    screenVideo,
   } = useLiveKitSession();
   const [showTranscript, setShowTranscript] = useState(true);
+  const [draft, setDraft] = useState("");
+  const [awaitingReply, setAwaitingReply] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const phase: VoicePhase = useMemo(() => {
@@ -98,17 +113,38 @@ function Index() {
     return level > 0.06 ? "user" : "listening";
   }, [status, active, agentSpeaking, level]);
 
+  const lastTurn = turns[turns.length - 1];
+  const replying = agentSpeaking || awaitingReply;
+
+  // Clear the "replying" state once the agent actually answers.
+  useEffect(() => {
+    if (lastTurn?.role === "agent") setAwaitingReply(false);
+  }, [lastTurn?.id, lastTurn?.role]);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [turns.length, showTranscript]);
+  }, [turns.length, showTranscript, replying]);
 
   const askTopic = async (prompt: string) => {
+    setAwaitingReply(true);
     const sent = await sendText(prompt);
-    if (!sent) await connect();
+    if (!sent) {
+      await connect();
+      await sendText(prompt);
+    }
+  };
+
+  const submitDraft = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = draft.trim();
+    if (!text) return;
+    setDraft("");
+    await askTopic(text);
   };
 
   const copy = PHASE_COPY[phase];
   const hasTurns = turns.length > 0;
+
 
   return (
     <>
@@ -154,7 +190,7 @@ function Index() {
           </span>
         </header>
 
-        <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-5 pt-2 pb-44 sm:pb-48">
+        <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-5 pt-2 pb-56 sm:pb-60">
           {/* Hero */}
           {!hasTurns && (
             <section className="animate-rise flex w-full flex-col items-center text-center">
@@ -187,15 +223,49 @@ function Index() {
 
             <Waveform
               level={level}
-              speaking={phase === "speaking"}
+              speaking={replying}
               active={active}
               className="mt-6 w-full max-w-md"
             />
 
-            <p className="mt-2 min-h-6 text-sm text-muted-foreground">
-              {error ? <span className="text-destructive">{error}</span> : copy.hint}
-            </p>
+            {replying ? (
+              <span className="glass-strong animate-rise mt-4 inline-flex items-center gap-2.5 rounded-full px-4 py-2 text-xs font-semibold shadow-[var(--glow-brand)]">
+                <span className="flex items-end gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="animate-think-dot h-1.5 w-1.5 rounded-full bg-gradient-brand"
+                      style={{ animationDelay: `${i * 0.16}s` }}
+                    />
+                  ))}
+                </span>
+                <span className="text-gradient">PrepPilot is replying…</span>
+              </span>
+            ) : (
+              <p className="mt-4 min-h-6 text-sm text-muted-foreground">
+                {error ? <span className="text-destructive">{error}</span> : copy.hint}
+              </p>
+            )}
           </section>
+
+          {/* Optional camera / screen share previews */}
+          {(localVideo || screenVideo) && (
+            <section className="grid w-full gap-3 sm:grid-cols-2">
+              {screenVideo && (
+                <VideoTile
+                  track={screenVideo}
+                  label="Your screen"
+                  className="aspect-video sm:col-span-2"
+                />
+              )}
+              {localVideo && (
+                <VideoTile track={localVideo} label="You" className="mx-auto aspect-video w-56" />
+              )}
+            </section>
+          )}
+
+
+
 
           {/* Suggested prompts */}
           {!hasTurns && (
@@ -257,7 +327,7 @@ function Index() {
                     </p>
                   </div>
                 ))}
-                {phase === "speaking" && (
+                {replying && (
                   <div className="flex justify-start">
                     <span className="glass flex items-center gap-1.5 rounded-2xl rounded-bl-md px-4 py-3">
                       {[0, 1, 2].map((i) => (
@@ -270,6 +340,7 @@ function Index() {
                     </span>
                   </div>
                 )}
+
               </div>
             </section>
           )}
@@ -304,9 +375,32 @@ function Index() {
           </footer>
         )}
 
-        {/* Floating controls */}
-        <div className="fixed inset-x-0 bottom-5 z-20 flex justify-center px-5 sm:bottom-7">
+        {/* Composer + floating controls */}
+        <div className="fixed inset-x-0 bottom-4 z-20 flex flex-col items-center gap-3 px-4 sm:bottom-6">
+          <form
+            onSubmit={submitDraft}
+            className="glass-strong flex w-full max-w-xl items-center gap-2 rounded-full p-1.5 pl-4 shadow-[var(--glow-cyan)]"
+          >
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Type instead of talking — English, Hindi or Hinglish…"
+              aria-label="Message PrepPilot AI"
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              aria-label="Send message"
+              disabled={!draft.trim()}
+              className="h-10 w-10 shrink-0 rounded-full bg-gradient-brand text-primary-foreground transition-transform hover:scale-105 disabled:opacity-40"
+            >
+              <SendHorizontal className="h-4 w-4" />
+            </Button>
+          </form>
+
           <div className="glass-strong flex items-center gap-2 rounded-full p-2">
+
             <Button
               type="button"
               variant="ghost"
@@ -318,6 +412,40 @@ function Index() {
             >
               {micEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
             </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={cameraEnabled ? "Turn camera off" : "Turn camera on"}
+              disabled={!active}
+              onClick={() => void toggleCamera()}
+              className={`h-12 w-12 rounded-full transition-transform hover:scale-105 hover:bg-foreground/10 disabled:opacity-40 ${
+                cameraEnabled ? "text-brand-cyan" : "text-muted-foreground"
+              }`}
+            >
+              {cameraEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={screenShareEnabled ? "Stop sharing screen" : "Share your screen"}
+              disabled={!active}
+              onClick={() => void toggleScreenShare()}
+              className={`h-12 w-12 rounded-full transition-transform hover:scale-105 hover:bg-foreground/10 disabled:opacity-40 ${
+                screenShareEnabled ? "text-brand-cyan" : "text-muted-foreground"
+              }`}
+            >
+              {screenShareEnabled ? (
+                <MonitorOff className="h-5 w-5" />
+              ) : (
+                <MonitorUp className="h-5 w-5" />
+              )}
+            </Button>
+
+
 
             {active ? (
               <Button

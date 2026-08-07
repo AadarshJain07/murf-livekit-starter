@@ -16,6 +16,10 @@ export function useLiveKitSession() {
   const [agentSpeaking, setAgentSpeaking] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [micEnabled, setMicEnabled] = useState(true);
+  const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [screenShareEnabled, setScreenShareEnabled] = useState(false);
+  const [localVideo, setLocalVideo] = useState<MediaStreamTrack | null>(null);
+  const [screenVideo, setScreenVideo] = useState<MediaStreamTrack | null>(null);
 
   const roomRef = useRef<import("livekit-client").Room | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -31,8 +35,13 @@ export function useLiveKitSession() {
     setLevel(0);
     setAgentSpeaking(false);
     setMicEnabled(true);
+    setCameraEnabled(false);
+    setScreenShareEnabled(false);
+    setLocalVideo(null);
+    setScreenVideo(null);
     setStatus("idle");
   }, []);
+
 
   const connect = useCallback(async () => {
     if (status === "connecting" || status === "connected") return;
@@ -137,6 +146,43 @@ export function useLiveKitSession() {
     setMicEnabled(next);
   }, []);
 
+  /** Optional camera — turn the webcam on/off mid-session. */
+  const toggleCamera = useCallback(async () => {
+    const room = roomRef.current;
+    if (!room) return;
+    const { Track } = await import("livekit-client");
+    const next = !room.localParticipant.isCameraEnabled;
+    await room.localParticipant.setCameraEnabled(next);
+    setCameraEnabled(next);
+    const track = next
+      ? (room.localParticipant.getTrackPublication(Track.Source.Camera)?.track
+          ?.mediaStreamTrack ?? null)
+      : null;
+    setLocalVideo(track);
+  }, []);
+
+  /** Optional screen share — share a tab/window with PrepPilot. */
+  const toggleScreenShare = useCallback(async () => {
+    const room = roomRef.current;
+    if (!room) return;
+    const { Track } = await import("livekit-client");
+    const next = !room.localParticipant.isScreenShareEnabled;
+    try {
+      await room.localParticipant.setScreenShareEnabled(next, { audio: false });
+    } catch {
+      // user dismissed the picker
+      setScreenShareEnabled(false);
+      setScreenVideo(null);
+      return;
+    }
+    setScreenShareEnabled(next);
+    const track = next
+      ? (room.localParticipant.getTrackPublication(Track.Source.ScreenShare)?.track
+          ?.mediaStreamTrack ?? null)
+      : null;
+    setScreenVideo(track);
+  }, []);
+
   const toggle = useCallback(() => {
     if (status === "connected" || status === "connecting") void disconnect();
     else void connect();
@@ -160,6 +206,12 @@ export function useLiveKitSession() {
     sendText,
     micEnabled,
     toggleMic,
+    cameraEnabled,
+    toggleCamera,
+    screenShareEnabled,
+    toggleScreenShare,
+    localVideo,
+    screenVideo,
     active: status === "connected",
   };
 }
