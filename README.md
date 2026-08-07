@@ -89,15 +89,3 @@ uv run python src/agent.py dev
 2. Click **Start Conversation** and allow microphone access.
 3. Speak or tap a suggested prompt card to begin learning.
 
-## Development Scripts
-
-```bash
-bun dev      # Start the dev server
-bun build    # Production build
-bun lint     # Run ESLint
-bun format   # Format with Prettier
-```
-
-## License
-
-This project is built for hackathon and educational use.
