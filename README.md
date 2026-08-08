@@ -42,6 +42,23 @@ A voice-first AI tutor built for Indian students. Explain concepts, revise lesso
 - LiveKit Cloud project
 - Murf, Deepgram, and Gemini API keys
 
+### How the pieces connect
+
+```text
+Browser (web app) --token--> /api/livekit-token  (LiveKit keys)
+       |                            |
+       +------- joins room ---------+
+                    |
+            LiveKit Cloud room
+                    |
+      Python agent (Murf + Deepgram + Gemini)
+```
+
+The agent connects out to LiveKit Cloud, so it works from your laptop with no
+port forwarding — but the tutor only replies while that process is running.
+For an always-on setup, deploy the same backend to LiveKit Cloud Agents or
+Railway; no code changes are needed.
+
 ### 1. Frontend
 
 Create a `.env.local` in the project root:
@@ -50,8 +67,11 @@ Create a `.env.local` in the project root:
 LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=your-livekit-key
 LIVEKIT_API_SECRET=your-livekit-secret
-AGENT_NAME=preppilot-agent
+AGENT_NAME=my-agent
 ```
+
+`AGENT_NAME` must match `agent_name` in `murf-livekit-starter/backend/src/agent.py`
+(`my-agent` by default) so each room explicitly dispatches your agent.
 
 Install and run:
 
@@ -64,28 +84,46 @@ Open [http://localhost:8080](http://localhost:8080).
 
 ### 2. Backend
 
-Create `murf-livekit-starter/backend/.env.local`:
+Copy the template and fill in all six keys:
 
-```env
-LIVEKIT_URL=wss://your-project.livekit.cloud
-LIVEKIT_API_KEY=your-livekit-key
-LIVEKIT_API_SECRET=your-livekit-secret
-MURF_API_KEY=your-murf-key
-DEEPGRAM_API_KEY=your-deepgram-key
-GOOGLE_API_KEY=your-gemini-key
+```bash
+cd murf-livekit-starter/backend
+cp .env.local.example .env.local
 ```
 
 Run the agent:
 
 ```bash
-cd murf-livekit-starter/backend
 uv sync
+uv run python src/agent.py download-files   # first run only
 uv run python src/agent.py dev
 ```
 
-## Usage
+## Demo runbook (two terminals)
 
-1. Open the frontend in your browser.
-2. Click **Start Conversation** and allow microphone access.
-3. Speak or tap a suggested prompt card to begin learning.
+```bash
+# Terminal 1 — the tutor's brain
+cd murf-livekit-starter/backend && uv run python src/agent.py dev
 
+# Terminal 2 — the web app
+bun dev
+```
+
+1. Open the web app, click **Start Conversation**, allow microphone access.
+2. Speak, or tap a suggested prompt card, or type in the chat composer.
+3. If the app connects but nothing answers, the UI shows a
+   "Tutor isn't online yet" hint — start the agent in Terminal 1 and reconnect.
+
+
+## Development Scripts
+
+```bash
+bun dev      # Start the dev server
+bun build    # Production build
+bun lint     # Run ESLint
+bun format   # Format with Prettier
+```
+
+## License
+
+This project is built for hackathon and educational use.

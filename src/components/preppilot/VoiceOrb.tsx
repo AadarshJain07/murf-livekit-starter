@@ -1,4 +1,10 @@
-export type VoicePhase = "idle" | "connecting" | "listening" | "user" | "speaking";
+export type VoicePhase =
+  | "idle"
+  | "connecting"
+  | "listening"
+  | "user"
+  | "speaking"
+  | "ended";
 
 type Props = {
   level: number;
@@ -6,9 +12,9 @@ type Props = {
   onClick: () => void;
 };
 
-/** Premium glass voice orb with distinct idle / listening / thinking / speaking states. */
+/** Premium glass voice orb with distinct ready / connecting / listening / speaking / ended states. */
 export function VoiceOrb({ level, phase, onClick }: Props) {
-  const idle = phase === "idle";
+  const idle = phase === "idle" || phase === "ended";
   const active = !idle && phase !== "connecting";
   const speaking = phase === "speaking";
   const thinking = phase === "connecting";

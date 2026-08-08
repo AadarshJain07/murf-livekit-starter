@@ -14,26 +14,39 @@ export function useLiveKitSession() {
   const [error, setError] = useState<string | null>(null);
   const [level, setLevel] = useState(0);
   const [agentSpeaking, setAgentSpeaking] = useState(false);
+  const [agentOnline, setAgentOnline] = useState(false);
+  const [agentMissing, setAgentMissing] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [micEnabled, setMicEnabled] = useState(true);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [screenShareEnabled, setScreenShareEnabled] = useState(false);
   const [localVideo, setLocalVideo] = useState<MediaStreamTrack | null>(null);
   const [screenVideo, setScreenVideo] = useState<MediaStreamTrack | null>(null);
+  /** true once a real session has ended (drives the "Session Ended" state). */
+  const [ended, setEnded] = useState(false);
+  /** true when the browser refused microphone access. */
+  const [micDenied, setMicDenied] = useState(false);
+
 
   const roomRef = useRef<import("livekit-client").Room | null>(null);
   const rafRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const agentWatchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const disconnect = useCallback(async () => {
+  const disconnect = useCallback(async (markEnded = false) => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
+    if (agentWatchRef.current) clearTimeout(agentWatchRef.current);
+    agentWatchRef.current = null;
     await audioCtxRef.current?.close().catch(() => {});
     audioCtxRef.current = null;
+    if (markEnded && roomRef.current) setEnded(true);
     await roomRef.current?.disconnect();
     roomRef.current = null;
     setLevel(0);
     setAgentSpeaking(false);
+    setAgentOnline(false);
+    setAgentMissing(false);
     setMicEnabled(true);
     setCameraEnabled(false);
     setScreenShareEnabled(false);
@@ -43,9 +56,13 @@ export function useLiveKitSession() {
   }, []);
 
 
+
+
   const connect = useCallback(async () => {
     if (status === "connecting" || status === "connected") return;
     setError(null);
+    setEnded(false);
+    setMicDenied(false);
     setStatus("connecting");
     try {
       const res = await fetch("/api/livekit-token", { method: "POST" });
@@ -88,14 +105,38 @@ export function useLiveKitSession() {
           return next.slice(-30);
         });
       });
+      room.on(RoomEvent.ParticipantConnected, () => {
+        setAgentOnline(true);
+        setAgentMissing(false);
+        if (agentWatchRef.current) clearTimeout(agentWatchRef.current);
+      });
+      room.on(RoomEvent.ParticipantDisconnected, () => {
+        setAgentOnline(room.remoteParticipants.size > 0);
+      });
       room.on(RoomEvent.Disconnected, () => {
         setStatus("idle");
         setLevel(0);
+        setAgentOnline(false);
+        setEnded(true);
       });
 
       await room.connect(data.serverUrl, data.participantToken);
       await room.localParticipant.setMicrophoneEnabled(true);
       setStatus("connected");
+
+      // The tutor "brain" runs as a separate agent worker. If nobody joins the
+      // room shortly after us, surface a clear hint instead of a silent orb.
+      const online = room.remoteParticipants.size > 0;
+      setAgentOnline(online);
+      if (!online) {
+        if (agentWatchRef.current) clearTimeout(agentWatchRef.current);
+        agentWatchRef.current = setTimeout(() => {
+          if (roomRef.current && roomRef.current.remoteParticipants.size === 0) {
+            setAgentMissing(true);
+          }
+        }, 8000);
+      }
+
 
       // Mic level for the orb.
       const micTrack = room.localParticipant.getTrackPublication(
@@ -122,8 +163,19 @@ export function useLiveKitSession() {
         rafRef.current = requestAnimationFrame(tick);
       }
     } catch (e) {
+      const name = e instanceof Error ? e.name : "";
+      const msg = e instanceof Error ? e.message : "";
+      const denied =
+        /NotAllowedError|NotFoundError|Permission|denied|MediaDevices|getUserMedia/i.test(
+          `${name} ${msg}`,
+        );
+      setMicDenied(denied);
       setStatus("error");
-      setError(e instanceof Error ? e.message : "Could not start the voice session.");
+      setError(
+        denied
+          ? "Microphone access is blocked."
+          : msg || "Could not start the voice session.",
+      );
       await disconnect();
     }
   }, [status, disconnect]);
@@ -184,7 +236,7 @@ export function useLiveKitSession() {
   }, []);
 
   const toggle = useCallback(() => {
-    if (status === "connected" || status === "connecting") void disconnect();
+    if (status === "connected" || status === "connecting") void disconnect(true);
     else void connect();
   }, [status, connect, disconnect]);
 
@@ -197,8 +249,13 @@ export function useLiveKitSession() {
   return {
     status,
     error,
+    ended,
+    micDenied,
     level,
     agentSpeaking,
+    agentOnline,
+    agentMissing,
+
     turns,
     connect,
     disconnect,

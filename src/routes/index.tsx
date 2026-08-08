@@ -5,6 +5,7 @@ import {
   BookOpenCheck,
   BrainCircuit,
   Languages,
+  Loader2,
   MessageSquareText,
   Mic,
   MicOff,
@@ -35,11 +36,11 @@ export const Route = createFileRoute("/")({
         content:
           "PrepPilot AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish.",
       },
-      { property: "og:title", content: "PrepPilot AI — Voice-First AI Tutor" },
+      { property: "og:title", content: "PrepPilot AI — Voice-First AI Tutor for Indian Students" },
       {
         property: "og:description",
         content:
-          "Talk to PrepPilot AI to learn concepts, revise lessons and take quizzes in English, Hindi or Hinglish.",
+          "PrepPilot AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -51,34 +52,59 @@ export const Route = createFileRoute("/")({
 const PROMPTS = [
   {
     icon: BrainCircuit,
-    title: "Explain a concept",
-    prompt: "Explain Newton's second law with a cricket example.",
-  },
-  {
-    icon: BookOpenCheck,
-    title: "Revise a lesson",
-    prompt: "Revise Class 10 Chemistry: acids, bases and salts.",
+    title: "Explain Photosynthesis",
+    prompt: "Explain photosynthesis in simple words with an example.",
   },
   {
     icon: Sparkles,
-    title: "Quiz me",
-    prompt: "Quiz me with 5 questions on Trigonometry basics.",
+    title: "Quiz me on Physics",
+    prompt: "Quiz me with 5 questions on Physics — motion and force.",
+  },
+  {
+    icon: BookOpenCheck,
+    title: "Solve a Maths Doubt",
+    prompt: "Help me solve a Maths doubt on quadratic equations, step by step.",
   },
   {
     icon: Languages,
-    title: "Hinglish mode",
-    prompt: "Photosynthesis ko Hinglish mein simple tarike se samjhao.",
+    title: "Revise Chemistry",
+    prompt: "Revise Chemistry: acids, bases and salts — Hinglish mein samjhao.",
   },
 ];
 
 const LANGUAGES = ["English", "हिन्दी", "Hinglish"];
 
-const PHASE_COPY: Record<VoicePhase, { label: string; hint: string }> = {
-  idle: { label: "Ready", hint: "Tap the orb to start talking with PrepPilot." },
-  connecting: { label: "Thinking", hint: "Waking up your tutor…" },
-  listening: { label: "Listening", hint: "Go ahead — speak in English, Hindi or Hinglish." },
-  user: { label: "Hearing you", hint: "Keep going, PrepPilot is following along." },
-  speaking: { label: "Speaking", hint: "PrepPilot is answering…" },
+const PHASE_COPY: Record<VoicePhase, { label: string; title: string; hint: string }> = {
+  idle: {
+    label: "Ready",
+    title: "Ready to Learn",
+    hint: "Ask PrepPilot anything about your studies.",
+  },
+  connecting: {
+    label: "Connecting",
+    title: "Connecting...",
+    hint: "Getting PrepPilot AI ready...",
+  },
+  listening: {
+    label: "Listening",
+    title: "Listening to you...",
+    hint: "Speak now — English, Hindi or Hinglish.",
+  },
+  user: {
+    label: "Listening",
+    title: "Listening to you...",
+    hint: "Keep going, PrepPilot is following along.",
+  },
+  speaking: {
+    label: "Speaking",
+    title: "PrepPilot is speaking...",
+    hint: "Listen in — you can interrupt anytime.",
+  },
+  ended: {
+    label: "Ended",
+    title: "Session Ended",
+    hint: "Ready for another learning session?",
+  },
 };
 
 function Index() {
@@ -87,11 +113,16 @@ function Index() {
     active,
     status,
     error,
+    ended,
+    micDenied,
     toggle,
     connect,
     sendText,
     turns,
     agentSpeaking,
+    agentOnline,
+    agentMissing,
+
     micEnabled,
     toggleMic,
     cameraEnabled,
@@ -108,10 +139,10 @@ function Index() {
 
   const phase: VoicePhase = useMemo(() => {
     if (status === "connecting") return "connecting";
-    if (!active) return "idle";
+    if (!active) return ended ? "ended" : "idle";
     if (agentSpeaking) return "speaking";
     return level > 0.06 ? "user" : "listening";
-  }, [status, active, agentSpeaking, level]);
+  }, [status, active, agentSpeaking, level, ended]);
 
   const lastTurn = turns[turns.length - 1];
   const replying = agentSpeaking || awaitingReply;
@@ -161,8 +192,8 @@ function Index() {
               <span className="block truncate font-display text-lg font-bold tracking-tight">
                 PrepPilot AI
               </span>
-              <span className="hidden text-[11px] tracking-[0.2em] text-muted-foreground uppercase sm:block">
-                Voice tutor
+              <span className="hidden text-[11px] tracking-[0.14em] text-muted-foreground uppercase sm:block">
+                Your Voice Learning Companion
               </span>
             </span>
           </a>
@@ -171,14 +202,14 @@ function Index() {
             <span className="relative flex h-2 w-2 shrink-0">
               <span
                 className={`absolute inset-0 rounded-full ${
-                  phase === "idle"
+                  phase === "idle" || phase === "ended"
                     ? "bg-muted-foreground"
                     : phase === "speaking"
                       ? "bg-brand-purple"
                       : "bg-brand-cyan"
                 }`}
               />
-              {phase !== "idle" && (
+              {phase !== "idle" && phase !== "ended" && (
                 <span
                   className={`absolute inset-0 animate-ping rounded-full ${
                     phase === "speaking" ? "bg-brand-purple" : "bg-brand-cyan"
@@ -199,10 +230,13 @@ function Index() {
                 Murf · LiveKit · Gemini
               </span>
               <h1 className="mt-5 font-display text-4xl leading-[1.05] font-extrabold text-balance sm:text-6xl">
-                Your voice-first <span className="text-gradient">AI tutor</span>
+                PrepPilot <span className="text-gradient">AI</span>
               </h1>
-              <p className="mt-4 max-w-lg text-base text-pretty text-muted-foreground sm:text-lg">
-                Explain concepts, revise lessons and take quizzes — just by talking.
+              <p className="mt-3 font-display text-lg font-semibold sm:text-xl">
+                Your Voice Learning Companion
+              </p>
+              <p className="mt-3 max-w-lg text-base text-pretty text-muted-foreground sm:text-lg">
+                Talk to PrepPilot, ask a study question, and learn through voice.
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {LANGUAGES.map((l) => (
@@ -221,11 +255,46 @@ function Index() {
           <section className="flex w-full flex-col items-center py-8 sm:py-10">
             <VoiceOrb level={level} phase={phase} onClick={toggle} />
 
+            {/* Big, unmistakable state banner */}
+            <div className="mt-6 flex flex-col items-center text-center">
+              <span
+                className={`glass-strong inline-flex items-center gap-2.5 rounded-full px-5 py-2.5 text-sm font-semibold ${
+                  phase === "speaking"
+                    ? "text-brand-purple shadow-[var(--glow-brand)]"
+                    : phase === "listening" || phase === "user"
+                      ? "text-brand-cyan shadow-[var(--glow-cyan)]"
+                      : "text-foreground"
+                }`}
+              >
+                {phase === "listening" || phase === "user" ? (
+                  <Mic className="h-4 w-4 animate-pulse" />
+                ) : phase === "speaking" ? (
+                  <span className="flex items-end gap-[3px]">
+                    {[0, 1, 2, 3].map((i) => (
+                      <span
+                        key={i}
+                        className="w-[3px] rounded-full bg-brand-purple"
+                        style={{
+                          height: `${8 + (i % 2) * 6}px`,
+                          animation: `wave-bar ${0.6 + i * 0.1}s ease-in-out ${i * 0.08}s infinite`,
+                        }}
+                      />
+                    ))}
+                  </span>
+                ) : phase === "connecting" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {copy.title}
+              </span>
+            </div>
+
             <Waveform
               level={level}
               speaking={replying}
               active={active}
-              className="mt-6 w-full max-w-md"
+              className="mt-5 w-full max-w-md"
             />
 
             {replying ? (
@@ -243,10 +312,64 @@ function Index() {
               </span>
             ) : (
               <p className="mt-4 min-h-6 text-sm text-muted-foreground">
-                {error ? <span className="text-destructive">{error}</span> : copy.hint}
+                {micDenied ? null : error ? (
+                  <span className="text-destructive">{error}</span>
+                ) : (
+                  copy.hint
+                )}
               </p>
             )}
+
+            {/* Ready / Start Again primary action */}
+            {!active && status !== "connecting" && (
+              <Button
+                type="button"
+                onClick={() => void connect()}
+                className="animate-rise mt-4 h-12 rounded-full bg-gradient-brand px-7 text-sm font-semibold text-primary-foreground shadow-[var(--glow-brand)] transition-transform hover:scale-[1.03]"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {ended ? "Start Again" : "Start Conversation"}
+              </Button>
+            )}
+
+            {/* Microphone permission error */}
+            {micDenied && (
+              <div className="glass-strong animate-rise mt-5 max-w-md rounded-3xl border border-destructive/30 p-5 text-center">
+                <span className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-destructive/15">
+                  <MicOff className="h-5 w-5 text-destructive" />
+                </span>
+                <p className="mt-3 font-display text-base font-bold">Microphone Access Needed</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                  PrepPilot needs microphone access to hear you. Please allow microphone access in
+                  your browser settings and try again.
+                </p>
+                <Button
+                  type="button"
+                  onClick={() => void connect()}
+                  className="mt-4 h-10 rounded-full bg-gradient-brand px-5 text-xs font-semibold text-primary-foreground"
+                >
+                  Try Again
+                </Button>
+              </div>
+            )}
+
+            {agentMissing && !agentOnline && (
+              <div className="glass-strong animate-rise mt-4 max-w-md rounded-2xl px-4 py-3 text-left text-xs leading-relaxed">
+                <p className="font-semibold text-brand-cyan">Tutor isn&apos;t online yet</p>
+                <p className="mt-1 text-muted-foreground">
+                  You&apos;re connected to the room, but the PrepPilot agent isn&apos;t running.
+                  Start it on your machine with{" "}
+                  <code className="rounded bg-white/10 px-1.5 py-0.5">
+                    uv run python src/agent.py dev
+                  </code>{" "}
+                  inside <span className="font-medium">murf-livekit-starter/backend</span>, then
+                  reconnect.
+                </p>
+              </div>
+            )}
           </section>
+
+
 
           {/* Optional camera / screen share previews */}
           {(localVideo || screenVideo) && (
@@ -460,10 +583,19 @@ function Index() {
               <Button
                 type="button"
                 onClick={toggle}
-                className="h-12 rounded-full bg-gradient-brand px-6 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.03]"
+                disabled={status === "connecting"}
+                className="h-12 rounded-full bg-gradient-brand px-6 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.03] disabled:opacity-60"
               >
-                <Sparkles className="mr-2 h-4 w-4" />
-                {status === "connecting" ? "Connecting…" : "Start Conversation"}
+                {status === "connecting" ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                {status === "connecting"
+                  ? "Connecting…"
+                  : ended
+                    ? "Start Again"
+                    : "Start Conversation"}
               </Button>
             )}
 

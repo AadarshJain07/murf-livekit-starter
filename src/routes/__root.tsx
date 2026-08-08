@@ -77,12 +77,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "PrepPilot AI — Voice-First AI Tutor" },
-      { name: "description", content: "Voice-first AI tutor for Indian students in English, Hindi and Hinglish." },
-      { property: "og:title", content: "PrepPilot AI — Voice-First AI Tutor" },
-      { property: "og:description", content: "Voice-first AI tutor for Indian students in English, Hindi and Hinglish." },
+      { title: "PrepPilot AI — Voice-First AI Tutor for Indian Students" },
+      { name: "description", content: "PrepPilot AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish." },
+      { property: "og:title", content: "PrepPilot AI — Voice-First AI Tutor for Indian Students" },
+      { property: "og:description", content: "PrepPilot AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "PrepPilot AI — Voice-First AI Tutor for Indian Students" },
+      { name: "twitter:description", content: "PrepPilot AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish." },
+      { property: "og:image", content: "#" },
+      { name: "twitter:image", content: "#" },
     ],
     links: [
       {
