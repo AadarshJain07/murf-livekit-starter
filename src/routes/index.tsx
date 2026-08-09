@@ -222,7 +222,7 @@ function Index() {
           </span>
         </header>
 
-        <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-5 pt-2 pb-56 sm:pb-60">
+        <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center px-4 pt-1 pb-40 sm:pb-44">
           {/* Hero */}
           {!hasTurns && (
             <section className="animate-rise flex w-full flex-col items-center text-center">
@@ -230,7 +230,7 @@ function Index() {
                 <span className="h-1.5 w-1.5 rounded-full bg-gradient-brand" />
                 Murf · LiveKit · Gemini
               </span>
-              <h1 className="mt-5 font-display text-4xl leading-[1.05] font-extrabold text-balance sm:text-6xl">
+              <h1 className="mt-3 font-display text-3xl leading-tight font-extrabold text-balance sm:text-5xl">
                 PrepPilot <span className="text-gradient">AI</span>
               </h1>
               <p className="mt-3 font-display text-lg font-semibold sm:text-xl">
@@ -253,7 +253,7 @@ function Index() {
           )}
 
           {/* Conversation stage */}
-          <section className="flex w-full flex-col items-center py-8 sm:py-10">
+          <section className="flex w-full flex-col items-center py-4 sm:py-6">
             <VoiceOrb level={level} phase={phase} onClick={toggle} />
 
             {/* Big, unmistakable state banner */}
