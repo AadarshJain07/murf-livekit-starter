@@ -8,8 +8,9 @@ from livekit.agents import (
     AgentSession,
     JobContext,
     JobProcess,
+    RunContext,
     cli,
-    inference,
+    function_tool,
     tokenize,
     room_io,
 )
@@ -17,6 +18,7 @@ from livekit.plugins import murf, silero, google, deepgram, noise_cancellation
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from prompt import SYSTEM_PROMPT, GREETING_PROMPT
+from memory import get_user_memory, save_user_memory
 
 logger = logging.getLogger("agent")
 
@@ -24,25 +26,46 @@ load_dotenv(".env.local")
 
 
 class Assistant(Agent):
-    def __init__(self) -> None:
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
         super().__init__(instructions=SYSTEM_PROMPT)
 
-    # To add tools, use the @function_tool decorator.
-    # Here's an example that adds a simple weather tool.
-    # You also have to add `from livekit.agents import function_tool, RunContext` to the top of this file
-    # @function_tool
-    # async def lookup_weather(self, context: RunContext, location: str):
-    #     """Use this tool to look up current weather information in the given location.
-    #
-    #     If the location is not supported by the weather service, the tool will indicate this. You must tell the user the location's weather is unavailable.
-    #
-    #     Args:
-    #         location: The location to look up weather information for (e.g. city name)
-    #     """
-    #
-    #     logger.info(f"Looking up weather for {location}")
-    #
-    #     return "sunny with a temperature of 70 degrees."
+    @function_tool
+    async def lookup_memory(
+        self,
+        context: RunContext,
+    ) -> str:
+        """Look up the current student's saved learning information."""
+
+        memory = get_user_memory(self.user_id)
+
+        if not memory:
+            return "No saved memory was found for this student."
+
+        return str(memory)
+
+    @function_tool
+    async def remember_student(
+        self,
+        context: RunContext,
+        name: str,
+        language_preference: str = "",
+        current_level: str = "",
+        topics_covered: str = "",
+        common_mistakes: str = "",
+    ) -> str:
+        """Save student information after the student explicitly agrees."""
+
+        save_user_memory(
+            user_id=self.user_id,
+            name=name,
+            language_preference=language_preference,
+            current_level=current_level,
+            topics_covered=topics_covered,
+            common_mistakes=common_mistakes,
+        )
+
+        return "Student memory saved successfully."
 
 
 server = AgentServer()
@@ -57,50 +80,42 @@ server.setup_fnc = prewarm
 
 @server.rtc_session(agent_name="my-agent")
 async def my_agent(ctx: JobContext):
-    # Logging setup
-    # Add any other context you want in all log entries here
+
     ctx.log_context_fields = {
         "room": ctx.room.name,
     }
 
-    # Set up a voice AI pipeline using Murf Falcon, Gemini, Deepgram, and the LiveKit turn detector
-    
-session = AgentSession(
-        stt=deepgram.STT(model="nova-3", language="multi"), # <- you have to set "multi" here to detect non-english transcripts
+    # Stable demo user ID.
+    # This allows multiple calls to access the same memory record.
+    user_id = "demo-student-001"
+
+    logger.info(f"Using persistent user ID: {user_id}")
+
+    session = AgentSession(
+        stt=deepgram.STT(
+            model="nova-3",
+            language="multi",
+        ),
         llm=google.LLM(
-                model="gemini-3.5-flash-lite",
-            ),
+            model="gemini-3.5-flash-lite",
+        ),
         tts=murf.TTS(
-                voice="anisha", # make sure locale key is not hardcoded
-                style="Conversation",
-                tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
-                text_pacing=True
+            voice="anisha",
+            style="Conversation",
+            tokenizer=tokenize.basic.SentenceTokenizer(
+                min_sentence_len=2
             ),
+            text_pacing=True,
+        ),
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
         preemptive_generation=True,
     )
-    # To use a realtime model instead of a voice pipeline, use the following session setup instead.
-    # (Note: This is for the OpenAI Realtime API. For other providers, see https://docs.livekit.io/agents/models/realtime/))
-    # 1. Install livekit-agents[openai]
-    # 2. Set OPENAI_API_KEY in .env.local
-    # 3. Add `from livekit.plugins import openai` to the top of this file
-    # 4. Use the following session setup instead of the version above
-    # session = AgentSession(
-    #     llm=openai.realtime.RealtimeModel(voice="marin")
-    # )
 
-    # # Add a virtual avatar to the session, if desired
-    # # For other providers, see https://docs.livekit.io/agents/models/avatar/
-    # avatar = hedra.AvatarSession(
-    #   avatar_id="...",  # See https://docs.livekit.io/agents/models/avatar/plugins/hedra
-    # )
-    # # Start the avatar and wait for it to join
-    # await avatar.start(session, room=ctx.room)
+    assistant = Assistant(user_id)
 
-    # Start the session, which initializes the voice pipeline and warms up the models
     await session.start(
-        agent=Assistant(),
+        agent=assistant,
         room=ctx.room,
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
@@ -114,9 +129,37 @@ session = AgentSession(
         ),
     )
 
-    # Join the room and connect to the user
     await ctx.connect()
-    await session.generate_reply(instructions=GREETING_PROMPT)
+
+    # Check existing memory before greeting.
+    memory = get_user_memory(user_id)
+
+    if memory:
+        name = memory.get("name", "")
+        topics = memory.get("topics_covered", "")
+
+        if name and topics:
+            greeting = (
+                f"Welcome back, {name}! "
+                f"Last time we were working on {topics}. "
+                "Would you like to continue?"
+            )
+        elif name:
+            greeting = (
+                f"Welcome back, {name}! "
+                "What would you like to learn today?"
+            )
+        else:
+            greeting = GREETING_PROMPT
+
+        await session.generate_reply(
+            instructions=greeting
+        )
+
+    else:
+        await session.generate_reply(
+            instructions=GREETING_PROMPT
+        )
 
 
 if __name__ == "__main__":

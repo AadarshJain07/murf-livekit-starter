@@ -135,6 +135,7 @@ function Index() {
   const [showTranscript, setShowTranscript] = useState(true);
   const [draft, setDraft] = useState("");
   const [awaitingReply, setAwaitingReply] = useState(false);
+  const [memoryConsent, setMemoryConsent] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const phase: VoicePhase = useMemo(() => {
@@ -320,17 +321,52 @@ function Index() {
               </p>
             )}
 
-            {/* Ready / Start Again primary action */}
-            {!active && status !== "connecting" && (
-              <Button
-                type="button"
-                onClick={() => void connect()}
-                className="animate-rise mt-4 h-12 rounded-full bg-gradient-brand px-7 text-sm font-semibold text-primary-foreground shadow-[var(--glow-brand)] transition-transform hover:scale-[1.03]"
-              >
-                <Sparkles className="mr-2 h-4 w-4" />
-                {ended ? "Start Again" : "Start Conversation"}
-              </Button>
-            )}
+            {/* Memory consent + Start conversation */}
+{!active && status !== "connecting" && (
+  <div className="mt-4 flex w-full max-w-md flex-col items-center gap-3">
+    {!memoryConsent && !ended && (
+      <div className="glass-strong animate-rise w-full rounded-3xl p-5 text-center">
+        <div className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-gradient-brand shadow-[var(--glow-brand)]">
+          <BrainCircuit className="h-5 w-5 text-primary-foreground" />
+        </div>
+
+        <p className="mt-3 font-display text-base font-bold">
+          Let PrepPilot Remember You?
+        </p>
+
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+          PrepPilot can remember useful learning details like your name,
+          class level, topics covered, and common mistakes to personalize
+          future conversations.
+        </p>
+
+        <p className="mt-2 text-[11px] text-muted-foreground/80">
+          You can choose not to save your information.
+        </p>
+
+        <Button
+          type="button"
+          onClick={() => setMemoryConsent(true)}
+          className="mt-4 h-11 w-full rounded-full bg-gradient-brand text-sm font-semibold text-primary-foreground shadow-[var(--glow-brand)]"
+        >
+          <BrainCircuit className="mr-2 h-4 w-4" />
+          Yes, Remember Me
+        </Button>
+      </div>
+    )}
+
+    {(memoryConsent || ended) && (
+      <Button
+        type="button"
+        onClick={() => void connect()}
+        className="animate-rise h-12 rounded-full bg-gradient-brand px-7 text-sm font-semibold text-primary-foreground shadow-[var(--glow-brand)] transition-transform hover:scale-[1.03]"
+      >
+        <Sparkles className="mr-2 h-4 w-4" />
+        {ended ? "Start Again" : "Start Conversation"}
+      </Button>
+    )}
+  </div>
+)}
 
             {/* Microphone permission error */}
             {micDenied && (
