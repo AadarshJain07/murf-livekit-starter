@@ -28,7 +28,10 @@ load_dotenv(".env.local")
 class Assistant(Agent):
     def __init__(self, user_id: str) -> None:
         self.user_id = user_id
-        super().__init__(instructions=SYSTEM_PROMPT)
+
+        super().__init__(
+            instructions=SYSTEM_PROMPT,
+        )
 
     @function_tool
     async def lookup_memory(
@@ -49,12 +52,19 @@ class Assistant(Agent):
         self,
         context: RunContext,
         name: str,
+        consent: bool,
         language_preference: str = "",
         current_level: str = "",
         topics_covered: str = "",
         common_mistakes: str = "",
     ) -> str:
-        """Save student information after the student explicitly agrees."""
+        """Save student information only after explicit consent."""
+
+        if not consent:
+            return (
+                "The student did not give permission. "
+                "Do not save their information."
+            )
 
         save_user_memory(
             user_id=self.user_id,
@@ -131,35 +141,12 @@ async def my_agent(ctx: JobContext):
 
     await ctx.connect()
 
-    # Check existing memory before greeting.
-    memory = get_user_memory(user_id)
-
-    if memory:
-        name = memory.get("name", "")
-        topics = memory.get("topics_covered", "")
-
-        if name and topics:
-            greeting = (
-                f"Welcome back, {name}! "
-                f"Last time we were working on {topics}. "
-                "Would you like to continue?"
-            )
-        elif name:
-            greeting = (
-                f"Welcome back, {name}! "
-                "What would you like to learn today?"
-            )
-        else:
-            greeting = GREETING_PROMPT
-
-        await session.generate_reply(
-            instructions=greeting
-        )
-
-    else:
-        await session.generate_reply(
-            instructions=GREETING_PROMPT
-        )
+    # Start with the normal greeting.
+    # The agent can use lookup_memory when it needs
+    # the student's saved learning context.
+    await session.generate_reply(
+        instructions=GREETING_PROMPT
+    )
 
 
 if __name__ == "__main__":
