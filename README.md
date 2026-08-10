@@ -4,23 +4,25 @@ A voice-first AI tutor built for Indian students. Explain concepts, revise lesso
 
 ## Features
 
-- **Voice-first tutoring** — Talk naturally, listen to answers powered by Murf Falcon + LiveKit.
-- **Multilingual support** — English, Hindi, and Hinglish.
-- **Concept explanations** — Ask any topic and get clear, student-friendly answers.
-- **Quiz mode** — Interactive spoken quizzes with encouraging feedback.
-- **Revision help** — Quickly recap lessons before exams.
-- **Safety guardrails** — No exam cheating, no full homework completion, no shaming wrong answers.
+* **Voice-first tutoring** — Talk naturally and listen to answers powered by Murf Falcon + LiveKit.
+* **Multilingual support** — English, Hindi, and Hinglish.
+* **Concept explanations** — Ask any topic and get clear, student-friendly answers.
+* **Quiz mode** — Interactive spoken quizzes with encouraging feedback.
+* **Revision help** — Quickly recap lessons before exams.
+* **Learning exercises** — Fetch subject-specific practice questions through a dedicated learning tool.
+* **Student memory** — Remember learning-related information with explicit student consent.
+* **Safety guardrails** — No exam cheating, no full homework completion, and no shaming students for wrong answers.
 
 ## Tech Stack
 
-- **Frontend:** TanStack Start, React 19, TypeScript, Tailwind CSS v4, shadcn/ui, LiveKit Client
-- **Backend:** Python, LiveKit Agents, Murf Falcon, Deepgram, Gemini
+* **Frontend:** React, TypeScript, Tailwind CSS, LiveKit Client
+* **Backend:** Python, LiveKit Agents, Murf Falcon, Deepgram, Gemini
 
 ## Project Structure
 
-```
+```text
 .
-├── src/                          # TanStack Start web app
+├── src/                          # Web application
 │   ├── routes/                   # Application routes
 │   ├── components/preppilot/     # PrepPilot UI components
 │   ├── hooks/                    # LiveKit and voice hooks
@@ -28,7 +30,8 @@ A voice-first AI tutor built for Indian students. Explain concepts, revise lesso
 ├── murf-livekit-starter/backend/ # Python voice agent
 │   └── src/
 │       ├── agent.py              # LiveKit agent entry
-│       ├── prompt.py             # SYSTEM_PROMPT, greeting, guardrail tests
+│       ├── prompt.py             # System prompt, greeting, guardrails
+│       ├── memory.py             # Student memory
 │       └── ...
 └── RED_TEAM.md                   # Adversarial test prompts
 ```
@@ -37,91 +40,135 @@ A voice-first AI tutor built for Indian students. Explain concepts, revise lesso
 
 ### Prerequisites
 
-- Node.js + Bun
-- Python 3.10+ + uv
-- LiveKit Cloud project
-- Murf, Deepgram, and Gemini API keys
+* Python 3.10+
+* `uv`
+* LiveKit Cloud project
+* Murf API key
+* Deepgram API key
+* Gemini API key
 
 ### How the pieces connect
 
 ```text
-Browser (web app) --token--> /api/livekit-token  (LiveKit keys)
-       |                            |
-       +------- joins room ---------+
-                    |
-            LiveKit Cloud room
-                    |
-      Python agent (Murf + Deepgram + Gemini)
+Web App
+   |
+   | joins LiveKit room
+   v
+LiveKit Cloud
+   |
+   v
+Python Voice Agent
+   |
+   +---- Deepgram STT
+   |
+   +---- Gemini LLM
+   |
+   +---- Murf Falcon TTS
+   |
+   +---- Learning & Memory Tools
 ```
 
-The agent connects out to LiveKit Cloud, so it works from your laptop with no
-port forwarding — but the tutor only replies while that process is running.
-For an always-on setup, deploy the same backend to LiveKit Cloud Agents or
-Railway; no code changes are needed.
+The Python agent connects to LiveKit Cloud, so it can run from your laptop without port forwarding. The tutor responds while the backend agent process is running.
 
-### 1. Frontend
+## Backend Setup
 
-Create a `.env.local` in the project root:
-
-```env
-LIVEKIT_URL=wss://your-project.livekit.cloud
-LIVEKIT_API_KEY=your-livekit-key
-LIVEKIT_API_SECRET=your-livekit-secret
-AGENT_NAME=my-agent
-```
-
-`AGENT_NAME` must match `agent_name` in `murf-livekit-starter/backend/src/agent.py`
-(`my-agent` by default) so each room explicitly dispatches your agent.
-
-Install and run:
-
-```bash
-bun install
-bun dev
-```
-
-Open [http://localhost:8080](http://localhost:8080).
-
-### 2. Backend
-
-Copy the template and fill in all six keys:
+Navigate to the backend:
 
 ```bash
 cd murf-livekit-starter/backend
+```
+
+Create your environment file:
+
+```bash
 cp .env.local.example .env.local
 ```
 
-Run the agent:
+Add your required API keys and LiveKit configuration to `.env.local`.
+
+Install dependencies:
 
 ```bash
 uv sync
-uv run python src/agent.py download-files   # first run only
+```
+
+Download required files on the first run:
+
+```bash
+uv run python src/agent.py download-files
+```
+
+## Run the Agent
+
+Start the LiveKit agent:
+
+```bash
 uv run python src/agent.py dev
 ```
 
-## Demo runbook (two terminals)
+Keep this process running while using the web application.
 
-```bash
-# Terminal 1 — the tutor's brain
-cd murf-livekit-starter/backend && uv run python src/agent.py dev
+## Demo Runbook
 
-# Terminal 2 — the web app
-bun dev
+1. Start the Python agent.
+
+2. Open the PrepPilot web application.
+
+3. Click **Start Conversation**.
+
+4. Allow microphone access.
+
+5. Ask PrepPilot a question.
+
+6. Try a practice request such as:
+
+   > "Give me a Class 11 Physics practice question."
+
+7. The agent should automatically call the learning exercise tool and return a practice question.
+
+## Day 5 — Learning Exercise Tool
+
+PrepPilot includes a `get_next_exercise` function tool for the Learning & Literacy track.
+
+The tool currently uses a **local hand-built dataset** containing practice exercises for:
+
+* Physics
+* Chemistry
+* Mathematics
+* Biology
+
+Example request:
+
+```text
+"Give me a Physics practice question."
 ```
 
-1. Open the web app, click **Start Conversation**, allow microphone access.
-2. Speak, or tap a suggested prompt card, or type in the chat composer.
-3. If the app connects but nothing answers, the UI shows a
-   "Tutor isn't online yet" hint — start the agent in Terminal 1 and reconnect.
+The agent decides when to call the tool based on the student's request and then presents the returned exercise naturally through voice.
 
+### Data Source
 
-## Development Scripts
+**Source:** Local hand-built dataset.
+
+**Status:** Local/static data, not a live external API.
+
+This approach is used for the Day 5 prototype so the agent can demonstrate reliable function calling and graceful handling of unsupported subjects without depending on an external service.
+
+## Development
+
+Start the agent in development mode:
 
 ```bash
-bun dev      # Start the dev server
-bun build    # Production build
-bun lint     # Run ESLint
-bun format   # Format with Prettier
+uv run python src/agent.py dev
+```
+
+The main backend files are:
+
+```text
+src/
+├── agent.py
+├── prompt.py
+├── memory.py
+└── ...
 ```
 
 ## License

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "phy-newton-001",
+    "subject": "Physics",
+    "level": "Class 11",
+    "topic": "Newton's Laws",
+    "question": "A body continues to remain at rest unless acted upon by an external unbalanced force. Which law of motion describes this?",
+    "options": [
+      "Newton's First Law",
+      "Newton's Second Law",
+      "Newton's Third Law",
+      "Law of Gravitation"
+    ],
+    "answer": "Newton's First Law"
+  },
+  {
+    "id": "phy-newton-002",
+    "subject": "Physics",
+    "level": "Class 11",
+    "topic": "Newton's Laws",
+    "question": "A force of 10 N acts on a body of mass 2 kg. What is the acceleration of the body?",
+    "options": [
+      "2 m/s²",
+      "5 m/s²",
+      "10 m/s²",
+      "20 m/s²"
+    ],
+    "answer": "5 m/s²"
+  },
+  {
+    "id": "phy-motion-001",
+    "subject": "Physics",
+    "level": "Class 11",
+    "topic": "Motion in a Straight Line",
+    "question": "What is the SI unit of acceleration?",
+    "options": [
+      "m/s",
+      "m/s²",
+      "km/h",
+      "N"
+    ],
+    "answer": "m/s²"
+  },
+  {
+    "id": "chem-atomic-001",
+    "subject": "Chemistry",
+    "level": "Class 11",
+    "topic": "Structure of Atom",
+    "question": "Which subatomic particle has a negative electric charge?",
+    "options": [
+      "Proton",
+      "Neutron",
+      "Electron",
+      "Nucleus"
+    ],
+    "answer": "Electron"
+  },
+  {
+    "id": "chem-mole-001",
+    "subject": "Chemistry",
+    "level": "Class 11",
+    "topic": "Some Basic Concepts of Chemistry",
+    "question": "What is the approximate value of Avogadro's number?",
+    "options": [
+      "6.022 × 10²³",
+      "9.8 × 10²",
+      "3.14 × 10⁸",
+      "1.602 × 10⁻¹⁹"
+    ],
+    "answer": "6.022 × 10²³"
+  },
+  {
+    "id": "math-sets-001",
+    "subject": "Maths",
+    "level": "Class 11",
+    "topic": "Sets",
+    "question": "If A is a subset of B, then which statement is always true?",
+    "options": [
+      "Every element of A belongs to B",
+      "Every element of B belongs to A",
+      "A and B have no common elements",
+      "A has more elements than B"
+    ],
+    "answer": "Every element of A belongs to B"
+  },
+  {
+    "id": "math-trigonometry-001",
+    "subject": "Maths",
+    "level": "Class 11",
+    "topic": "Trigonometric Functions",
+    "question": "What is the value of sin 90 degrees?",
+    "options": [
+      "0",
+      "1",
+      "-1",
+      "1/2"
+    ],
+    "answer": "1"
+  },
+  {
+    "id": "bio-cell-001",
+    "subject": "Biology",
+    "level": "Class 11",
+    "topic": "Cell: The Unit of Life",
+    "question": "Which organelle is known as the powerhouse of the cell?",
+    "options": [
+      "Nucleus",
+      "Ribosome",
+      "Mitochondria",
+      "Golgi apparatus"
+    ],
+    "answer": "Mitochondria"
+  },
+  {
+    "id": "bio-plant-001",
+    "subject": "Biology",
+    "level": "Class 11",
+    "topic": "Plant Kingdom",
+    "question": "Which pigment is primarily responsible for photosynthesis in green plants?",
+    "options": [
+      "Chlorophyll",
+      "Haemoglobin",
+      "Melanin",
+      "Keratin"
+    ],
+    "answer": "Chlorophyll"
+  }
+]

@@ -34,20 +34,6 @@ class Assistant(Agent):
         )
 
     @function_tool
-    async def lookup_memory(
-        self,
-        context: RunContext,
-    ) -> str:
-        """Look up the current student's saved learning information."""
-
-        memory = get_user_memory(self.user_id)
-
-        if not memory:
-            return "No saved memory was found for this student."
-
-        return str(memory)
-
-    @function_tool
     async def remember_student(
         self,
         context: RunContext,
@@ -77,6 +63,66 @@ class Assistant(Agent):
 
         return "Student memory saved successfully."
 
+    @function_tool
+    async def get_next_exercise(
+        self,
+        context: RunContext,
+        subject: str,
+        level: str = "Class 11",
+    ) -> str:
+        """
+        Fetch the next practice exercise for a student.
+        Uses the local Learning & Literacy dataset.
+        """
+
+        exercises = {
+            "physics": {
+                "topic": "Newton's Laws",
+                "question": (
+                    "A 5 kg object is acted upon by a net force of 20 N. "
+                    "What is its acceleration?"
+                ),
+                "answer": "4 m/s²",
+            },
+            "chemistry": {
+                "topic": "Mole Concept",
+                "question": (
+                    "How many moles are present in 18 grams of water?"
+                ),
+                "answer": "1 mole",
+            },
+            "maths": {
+                "topic": "Quadratic Equations",
+                "question": (
+                    "Find the roots of x² - 5x + 6 = 0."
+                ),
+                "answer": "2 and 3",
+            },
+            "biology": {
+                "topic": "Cell Biology",
+                "question": (
+                    "Which organelle is known as the powerhouse of the cell?"
+                ),
+                "answer": "Mitochondria",
+            },
+        }
+
+        key = subject.lower().strip()
+
+        if key not in exercises:
+            return (
+                f"I don't currently have an exercise dataset for {subject}. "
+                "Please choose Physics, Chemistry, Maths, or Biology."
+            )
+
+        exercise = exercises[key]
+
+        return (
+            f"Topic: {exercise['topic']}\n"
+            f"Question: {exercise['question']}\n"
+            f"Expected answer: {exercise['answer']}"
+        )
+
 
 server = AgentServer()
 
@@ -96,10 +142,11 @@ async def my_agent(ctx: JobContext):
     }
 
     # Stable demo user ID.
-    # This allows multiple calls to access the same memory record.
     user_id = "demo-student-001"
 
-    logger.info(f"Using persistent user ID: {user_id}")
+    logger.info(
+        f"Using persistent user ID: {user_id}"
+    )
 
     session = AgentSession(
         stt=deepgram.STT(
@@ -119,7 +166,7 @@ async def my_agent(ctx: JobContext):
         ),
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
-        preemptive_generation=True,
+        preemptive_generation=False,
     )
 
     assistant = Assistant(user_id)
@@ -141,11 +188,35 @@ async def my_agent(ctx: JobContext):
 
     await ctx.connect()
 
-    # Start with the normal greeting.
-    # The agent can use lookup_memory when it needs
-    # the student's saved learning context.
+    # Read memory directly from the database.
+    # This avoids triggering a Gemini function call during startup.
+    memory = get_user_memory(user_id)
+
+    if memory:
+        name = memory.get("name", "")
+        topics = memory.get("topics_covered", "")
+
+        if name and topics:
+            greeting = (
+                f"Welcome back, {name}! "
+                f"Last time we were working on {topics}. "
+                "Would you like to continue?"
+            )
+
+        elif name:
+            greeting = (
+                f"Welcome back, {name}! "
+                "What would you like to learn today?"
+            )
+
+        else:
+            greeting = GREETING_PROMPT
+
+    else:
+        greeting = GREETING_PROMPT
+
     await session.generate_reply(
-        instructions=GREETING_PROMPT
+        instructions=greeting
     )
 
 
