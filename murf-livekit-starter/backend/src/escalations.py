@@ -1,22 +1,20 @@
-"""Day 7 — teacher/human escalation store.
+"""Day 7 — teacher/human escalation store + Discord integration."""
 
-Escalation requests are persisted twice:
-
-1. SQLite (`Revora.db`, table `escalations`) — durable local storage.
-2. `escalations.json` next to the database — a plain JSON mirror that the
-   web support dashboard can read without a database driver.
-
-Only learning-support information is stored. Never store passwords, OTPs,
-PINs, account numbers, or any other sensitive personal data.
-"""
+from __future__ import annotations
 
 import json
 import random
 import sqlite3
 import string
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+import requests
+from dotenv import load_dotenv
+
+load_dotenv(".env.local")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "Revora.db"
@@ -24,7 +22,6 @@ JSON_PATH = BASE_DIR / "escalations.json"
 
 VALID_URGENCY = ("low", "medium", "high")
 
-# Fields that must never be stored, even if a model tries to pass them along.
 BLOCKED_KEYWORDS = (
     "password",
     "otp",
@@ -45,6 +42,7 @@ def _connect() -> sqlite3.Connection:
 
 def init_escalations() -> None:
     conn = _connect()
+
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS escalations (
@@ -61,27 +59,37 @@ def init_escalations() -> None:
         )
         """
     )
+
     conn.commit()
     conn.close()
 
 
 def generate_reference_id() -> str:
-    """Short human-speakable reference such as REV-7F42A."""
+    """Generate a short human-speakable reference ID."""
+
     alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
     for _ in range(20):
-        candidate = "REV-" + "".join(random.choice(alphabet) for _ in range(5))
+        candidate = "REV-" + "".join(
+            random.choice(alphabet) for _ in range(5)
+        )
+
         if get_escalation(candidate) is None:
             return candidate
-    # Extremely unlikely fallback.
-    return "REV-" + "".join(random.choice(string.digits) for _ in range(6))
+
+    return "REV-" + "".join(
+        random.choice(string.digits) for _ in range(6)
+    )
 
 
 def _sanitize(value: Optional[str], limit: int = 400) -> str:
     text = (value or "").strip()
     lowered = text.lower()
+
     for keyword in BLOCKED_KEYWORDS:
         if keyword in lowered:
             return "[removed: sensitive information must not be shared]"
+
     return text[:limit]
 
 
@@ -105,30 +113,54 @@ def _rows_to_dicts(rows) -> list[dict]:
 
 def _select(where: str = "", params: tuple = ()) -> list[dict]:
     init_escalations()
+
     conn = _connect()
+
     cursor = conn.execute(
         f"""
-        SELECT reference_id, student, reason, topic, tried, urgency,
-               language_preference, follow_up_method, status, created_at
+        SELECT
+            reference_id,
+            student,
+            reason,
+            topic,
+            tried,
+            urgency,
+            language_preference,
+            follow_up_method,
+            status,
+            created_at
         FROM escalations
         {where}
         ORDER BY created_at DESC
         """,
         params,
     )
+
     rows = cursor.fetchall()
     conn.close()
+
     return _rows_to_dicts(rows)
 
 
 def get_escalation(reference_id: str) -> Optional[dict]:
-    results = _select("WHERE reference_id = ?", (reference_id,))
+    results = _select(
+        "WHERE reference_id = ?",
+        (reference_id,),
+    )
+
     return results[0] if results else None
 
 
-def list_escalations(status: Optional[str] = "open") -> list[dict]:
+def list_escalations(
+    status: Optional[str] = "open",
+) -> list[dict]:
+
     if status:
-        return _select("WHERE status = ?", (status,))
+        return _select(
+            "WHERE status = ?",
+            (status,),
+        )
+
     return _select()
 
 
@@ -137,7 +169,110 @@ def _write_json_mirror() -> None:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "escalations": list_escalations(status=None),
     }
-    JSON_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    JSON_PATH.write_text(
+        json.dumps(payload, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _send_to_discord(record: dict) -> None:
+    """
+    Send a new escalation to the Revora teacher-support Discord channel.
+    """
+
+    webhook_url = os.getenv(
+        "DISCORD_TEACHER_WEBHOOK_URL"
+    )
+
+    if not webhook_url:
+        print(
+            "[DISCORD] DISCORD_TEACHER_WEBHOOK_URL is not configured."
+        )
+        return
+
+    message = {
+        "username": "Revora Support",
+        "embeds": [
+            {
+                "title": "🚨 New Teacher Support Request",
+                "description": (
+                    "A student has given permission for Revora "
+                    "to create a teacher-support request."
+                ),
+                "color": 0x7C3AED,
+                "fields": [
+                    {
+                        "name": "Reference ID",
+                        "value": f"`{record['reference_id']}`",
+                        "inline": True,
+                    },
+                    {
+                        "name": "Urgency",
+                        "value": record["urgency"].capitalize(),
+                        "inline": True,
+                    },
+                    {
+                        "name": "Status",
+                        "value": "Open",
+                        "inline": True,
+                    },
+                    {
+                        "name": "Student",
+                        "value": record["student"] or "Unknown",
+                        "inline": True,
+                    },
+                    {
+                        "name": "Topic",
+                        "value": record["topic"] or "Not specified",
+                        "inline": True,
+                    },
+                    {
+                        "name": "Language",
+                        "value": record["language_preference"],
+                        "inline": True,
+                    },
+                    {
+                        "name": "Reason",
+                        "value": record["reason"] or "Not specified",
+                        "inline": False,
+                    },
+                    {
+                        "name": "What Revora Tried",
+                        "value": record["tried"] or "Nothing recorded",
+                        "inline": False,
+                    },
+                    {
+                        "name": "Follow-up",
+                        "value": record["follow_up_method"],
+                        "inline": False,
+                    },
+                ],
+                "footer": {
+                    "text": "Revora • Teacher Support"
+                },
+            }
+        ],
+    }
+
+    try:
+        response = requests.post(
+            webhook_url,
+            json=message,
+            timeout=10,
+        )
+
+        response.raise_for_status()
+
+        print(
+            f"[DISCORD] Escalation {record['reference_id']} sent successfully."
+        )
+
+    except requests.RequestException as error:
+        print(
+            f"[DISCORD] Failed to send escalation "
+            f"{record['reference_id']}: {error}"
+        )
 
 
 def create_escalation(
@@ -149,33 +284,62 @@ def create_escalation(
     language_preference: str = "English",
     follow_up_method: str = "in-app message",
 ) -> dict:
-    """Create and persist one escalation request. Consent must already be given."""
+    """
+    Create and persist one escalation request.
+
+    Consent must already have been obtained by the agent.
+    """
+
     init_escalations()
 
-    normalized_urgency = (urgency or "medium").strip().lower()
+    normalized_urgency = (
+        urgency or "medium"
+    ).strip().lower()
+
     if normalized_urgency not in VALID_URGENCY:
         normalized_urgency = "medium"
 
     record = {
         "reference_id": generate_reference_id(),
-        "student": _sanitize(student, 120) or "unknown student",
+        "student": _sanitize(
+            student,
+            120,
+        ) or "unknown student",
         "reason": _sanitize(reason),
         "topic": _sanitize(topic, 160),
         "tried": _sanitize(tried),
         "urgency": normalized_urgency,
-        "language_preference": _sanitize(language_preference, 60) or "English",
-        "follow_up_method": _sanitize(follow_up_method, 60) or "in-app message",
+        "language_preference": _sanitize(
+            language_preference,
+            60,
+        ) or "English",
+        "follow_up_method": _sanitize(
+            follow_up_method,
+            60,
+        ) or "in-app message",
         "status": "open",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(
+            timezone.utc
+        ).isoformat(),
     }
 
     conn = _connect()
+
     conn.execute(
         """
         INSERT INTO escalations (
-            reference_id, student, reason, topic, tried, urgency,
-            language_preference, follow_up_method, status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            reference_id,
+            student,
+            reason,
+            topic,
+            tried,
+            urgency,
+            language_preference,
+            follow_up_method,
+            status,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             record["reference_id"],
@@ -190,8 +354,14 @@ def create_escalation(
             record["created_at"],
         ),
     )
+
     conn.commit()
     conn.close()
 
+    # Keep the local JSON mirror for the Revora dashboard.
     _write_json_mirror()
+
+    # Send the same safe summary to Discord.
+    _send_to_discord(record)
+
     return record

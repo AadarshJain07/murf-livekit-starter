@@ -21,6 +21,10 @@ export async function getEscalations(): Promise<Escalation[]> {
     "escalations.json"
   );
 
+  console.log("CWD:", process.cwd());
+  console.log("Escalation file:", filePath);
+  console.log("File exists:", fs.existsSync(filePath));
+
   try {
     if (!fs.existsSync(filePath)) {
       console.error("Escalation file not found:", filePath);
@@ -28,6 +32,8 @@ export async function getEscalations(): Promise<Escalation[]> {
     }
 
     const raw = fs.readFileSync(filePath, "utf-8");
+
+    console.log("Escalation file content:", raw);
 
     if (!raw.trim()) {
       return [];

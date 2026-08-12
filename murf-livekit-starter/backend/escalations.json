@@ -1,17 +1,29 @@
 {
-  "generated_at": "2026-08-12T04:28:03.626470+00:00",
+  "generated_at": "2026-08-12T05:08:00.221267+00:00",
   "escalations": [
     {
-      "reference_id": "REV-WBY7V",
-      "student": "Aadarsh",
-      "reason": "Student is struggling with the mole concept and requested a human teacher quickly.",
-      "topic": "Mole Concept",
-      "tried": "Explained the definition of a mole and offered a practice question.",
+      "reference_id": "REV-C9MSE",
+      "student": "Student",
+      "reason": "Student requested to connect with a teacher.",
+      "topic": "General Support",
+      "tried": "Asked to connect with a teacher immediately.",
       "urgency": "medium",
       "language_preference": "English",
       "follow_up_method": "chat",
       "status": "open",
-      "created_at": "2026-08-12T04:28:03.577574+00:00"
+      "created_at": "2026-08-12T05:08:00.208818+00:00"
+    },
+    {
+      "reference_id": "REV-SZNYW",
+      "student": "demo-student-001",
+      "reason": "Student requested connection with a human teacher",
+      "topic": "General support / doubt",
+      "tried": "Asked for teacher connection",
+      "urgency": "medium",
+      "language_preference": "English",
+      "follow_up_method": "chat",
+      "status": "open",
+      "created_at": "2026-08-12T05:03:12.939566+00:00"
     }
   ]
 }
