@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import fs from "fs";
 import path from "path";
 
@@ -14,24 +15,7 @@ export type Escalation = {
   created_at: string;
 };
 
-export async function getEscalations(): Promise<Escalation[]> {
-  // If running in browser, fetch from API endpoint
-  if (typeof window !== "undefined") {
-    try {
-      const res = await fetch("/api/escalations");
-      if (!res.ok) {
-        console.error("Escalations API returned non-OK status:", res.status);
-        return [];
-      }
-      const data = await res.json();
-      return data.escalations ?? [];
-    } catch (error) {
-      console.error("Failed to fetch escalations from API:", error);
-      return [];
-    }
-  }
-
-  // Server-side fallback reading candidate paths
+function readEscalationsFromFile(): Escalation[] {
   const candidatePaths = [
     path.resolve(process.cwd(), "murf-livekit-starter", "backend", "escalations.json"),
     path.resolve(process.cwd(), "backend", "escalations.json"),
@@ -51,9 +35,23 @@ export async function getEscalations(): Promise<Escalation[]> {
         }
       }
     } catch (error) {
-      console.error(`Failed to read escalation data at ${filePath}:`, error);
+      console.error(`Failed to read escalation file at ${filePath}:`, error);
     }
   }
 
   return [];
 }
+
+/**
+  * API route to fetch teacher support escalations from the backend store.
+  */
+export const Route = createFileRoute("/api/escalations")({
+  server: {
+    handlers: {
+      GET: async () => {
+        const escalations = readEscalationsFromFile();
+        return Response.json({ escalations });
+      },
+    },
+  },
+} as any);

@@ -165,12 +165,15 @@ class Assistant(Agent):
         language_preference: str = "English",
         follow_up_method: str = "in-app message",
         student: str = "",
+        phone_number: str = "",
     ) -> str:
         """
         Raise a support request so a human teacher can help this student.
 
         Only call this after you explained that a teacher can help AND the
         student clearly agreed to share a short summary (consent=True).
+        If the student asks for a phone call ("call me"), ask for their phone number
+        and pass it in phone_number with follow_up_method="phone call".
         Never include passwords, OTPs, PINs, account numbers or any other
         private information in the summary fields.
         """
@@ -198,6 +201,7 @@ class Assistant(Agent):
                 urgency=urgency,
                 language_preference=language_preference,
                 follow_up_method=follow_up_method,
+                phone_number=phone_number,
             )
         except Exception as e:  # noqa: BLE001 - never crash the voice session
             logger.error("Escalation could not be saved: %s", e)

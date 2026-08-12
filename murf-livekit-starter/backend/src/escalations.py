@@ -55,10 +55,16 @@ def init_escalations() -> None:
             language_preference TEXT,
             follow_up_method TEXT,
             status TEXT,
-            created_at TEXT
+            created_at TEXT,
+            phone_number TEXT
         )
         """
     )
+
+    try:
+        conn.execute("ALTER TABLE escalations ADD COLUMN phone_number TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
 
     conn.commit()
     conn.close()
@@ -106,6 +112,7 @@ def _rows_to_dicts(rows) -> list[dict]:
             "follow_up_method": r[7],
             "status": r[8],
             "created_at": r[9],
+            "phone_number": r[10] if len(r) > 10 else "",
         }
         for r in rows
     ]
@@ -128,7 +135,8 @@ def _select(where: str = "", params: tuple = ()) -> list[dict]:
             language_preference,
             follow_up_method,
             status,
-            created_at
+            created_at,
+            phone_number
         FROM escalations
         {where}
         ORDER BY created_at DESC
@@ -178,79 +186,104 @@ def _write_json_mirror() -> None:
 
 def _send_to_discord(record: dict) -> None:
     """
-    Send a new escalation to the Revora teacher-support Discord channel.
+    Send a beautifully formatted escalation alert to the Revora teacher Discord channel.
     """
 
-    webhook_url = os.getenv(
-        "DISCORD_TEACHER_WEBHOOK_URL"
-    )
+    webhook_url = os.getenv("DISCORD_TEACHER_WEBHOOK_URL")
 
     if not webhook_url:
-        print(
-            "[DISCORD] DISCORD_TEACHER_WEBHOOK_URL is not configured."
-        )
+        print("[DISCORD] DISCORD_TEACHER_WEBHOOK_URL is not configured.")
         return
 
+    follow_up = (record.get("follow_up_method") or "").lower()
+    is_call = "call" in follow_up or "phone" in follow_up
+    urgency = (record.get("urgency") or "medium").lower()
+
+    if is_call or urgency == "high":
+        color = 0xEF4444  # Vibrant Red
+        title_prefix = "☎️ IMMEDIATE TEACHER CALL REQUEST"
+        urgency_label = "🔴 HIGH PRIORITY"
+    elif urgency == "medium":
+        color = 0xF59E0B  # Warm Amber
+        title_prefix = "🚨 TEACHER SUPPORT REQUEST"
+        urgency_label = "🟡 MEDIUM PRIORITY"
+    else:
+        color = 0x10B981  # Emerald Green
+        title_prefix = "💬 TEACHER SUPPORT REQUEST"
+        urgency_label = "🟢 LOW PRIORITY"
+
+    # Unix timestamp calculation for Discord dynamic time tag
+    created_dt = datetime.now(timezone.utc)
+    unix_time = int(created_dt.timestamp())
+
+    phone = record.get("phone_number") or ""
+    if not phone and "call" in follow_up:
+        phone = record.get("follow_up_method") or "Phone call requested"
+
+    fields = [
+        {
+            "name": "🆔 Reference ID",
+            "value": f"`{record['reference_id']}`",
+            "inline": True,
+        },
+        {
+            "name": "👤 Student Name",
+            "value": f"**{record['student'] or 'Student'}**",
+            "inline": True,
+        },
+        {
+            "name": "⚡ Urgency",
+            "value": urgency_label,
+            "inline": True,
+        },
+        {
+            "name": "📞 Contact / Method",
+            "value": f"**{phone if phone else record['follow_up_method']}**",
+            "inline": True,
+        },
+        {
+            "name": "🌐 Language",
+            "value": record.get("language_preference") or "English",
+            "inline": True,
+        },
+        {
+            "name": "⏰ Requested At",
+            "value": f"<t:{unix_time}:F> (<t:{unix_time}:R>)",
+            "inline": True,
+        },
+        {
+            "name": "📚 Topic / Subject",
+            "value": f"```{record.get('topic') or 'General Study Doubt'}```",
+            "inline": False,
+        },
+        {
+            "name": "❓ Reason for Request",
+            "value": record.get("reason") or "Student requested human teacher assistance.",
+            "inline": False,
+        },
+        {
+            "name": "🛠️ What Revora Tried",
+            "value": record.get("tried") or "Explained concept and asked for consent.",
+            "inline": False,
+        },
+    ]
+
     message = {
-        "username": "Revora Support",
+        "username": "Revora Teacher Dispatch",
+        "avatar_url": "https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/phone-call.png",
         "embeds": [
             {
-                "title": "🚨 New Teacher Support Request",
+                "title": title_prefix,
                 "description": (
-                    "A student has given permission for Revora "
-                    "to create a teacher-support request."
+                    "**A student has requested teacher support via Revora AI.**\n"
+                    "Please review the details below and follow up promptly."
                 ),
-                "color": 0x7C3AED,
-                "fields": [
-                    {
-                        "name": "Reference ID",
-                        "value": f"`{record['reference_id']}`",
-                        "inline": True,
-                    },
-                    {
-                        "name": "Urgency",
-                        "value": record["urgency"].capitalize(),
-                        "inline": True,
-                    },
-                    {
-                        "name": "Status",
-                        "value": "Open",
-                        "inline": True,
-                    },
-                    {
-                        "name": "Student",
-                        "value": record["student"] or "Unknown",
-                        "inline": True,
-                    },
-                    {
-                        "name": "Topic",
-                        "value": record["topic"] or "Not specified",
-                        "inline": True,
-                    },
-                    {
-                        "name": "Language",
-                        "value": record["language_preference"],
-                        "inline": True,
-                    },
-                    {
-                        "name": "Reason",
-                        "value": record["reason"] or "Not specified",
-                        "inline": False,
-                    },
-                    {
-                        "name": "What Revora Tried",
-                        "value": record["tried"] or "Nothing recorded",
-                        "inline": False,
-                    },
-                    {
-                        "name": "Follow-up",
-                        "value": record["follow_up_method"],
-                        "inline": False,
-                    },
-                ],
+                "color": color,
+                "fields": fields,
                 "footer": {
-                    "text": "Revora • Teacher Support"
+                    "text": "Revora AI • Voice Tutor Teacher Escalation Hub"
                 },
+                "timestamp": created_dt.isoformat(),
             }
         ],
     }
@@ -283,6 +316,7 @@ def create_escalation(
     urgency: str = "medium",
     language_preference: str = "English",
     follow_up_method: str = "in-app message",
+    phone_number: str = "",
 ) -> dict:
     """
     Create and persist one escalation request.
@@ -317,6 +351,7 @@ def create_escalation(
             follow_up_method,
             60,
         ) or "in-app message",
+        "phone_number": _sanitize(phone_number, 30),
         "status": "open",
         "created_at": datetime.now(
             timezone.utc
@@ -337,9 +372,10 @@ def create_escalation(
             language_preference,
             follow_up_method,
             status,
-            created_at
+            created_at,
+            phone_number
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             record["reference_id"],
@@ -352,6 +388,7 @@ def create_escalation(
             record["follow_up_method"],
             record["status"],
             record["created_at"],
+            record["phone_number"],
         ),
     )
 

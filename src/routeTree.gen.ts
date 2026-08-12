@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SupportRouteImport } from './routes/support'
+import { Route as ApiEscalationsRouteImport } from './routes/api/escalations'
 import { Route as ApiLivekitTokenRouteImport } from './routes/api/livekit-token'
+import { Route as ApiRequestCallRouteImport } from './routes/api/request-call'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,40 +25,74 @@ const SupportRoute = SupportRouteImport.update({
   path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEscalationsRoute = ApiEscalationsRouteImport.update({
+  id: '/api/escalations',
+  path: '/api/escalations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLivekitTokenRoute = ApiLivekitTokenRouteImport.update({
   id: '/api/livekit-token',
   path: '/api/livekit-token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRequestCallRoute = ApiRequestCallRouteImport.update({
+  id: '/api/request-call',
+  path: '/api/request-call',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/support': typeof SupportRoute
+  '/api/escalations': typeof ApiEscalationsRoute
   '/api/livekit-token': typeof ApiLivekitTokenRoute
+  '/api/request-call': typeof ApiRequestCallRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/support': typeof SupportRoute
+  '/api/escalations': typeof ApiEscalationsRoute
   '/api/livekit-token': typeof ApiLivekitTokenRoute
+  '/api/request-call': typeof ApiRequestCallRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/support': typeof SupportRoute
+  '/api/escalations': typeof ApiEscalationsRoute
   '/api/livekit-token': typeof ApiLivekitTokenRoute
+  '/api/request-call': typeof ApiRequestCallRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/support' | '/api/livekit-token'
+  fullPaths:
+    | '/'
+    | '/support'
+    | '/api/escalations'
+    | '/api/livekit-token'
+    | '/api/request-call'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/support' | '/api/livekit-token'
-  id: '__root__' | '/' | '/support' | '/api/livekit-token'
+  to:
+    | '/'
+    | '/support'
+    | '/api/escalations'
+    | '/api/livekit-token'
+    | '/api/request-call'
+  id:
+    | '__root__'
+    | '/'
+    | '/support'
+    | '/api/escalations'
+    | '/api/livekit-token'
+    | '/api/request-call'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SupportRoute: typeof SupportRoute
+  ApiEscalationsRoute: typeof ApiEscalationsRoute
   ApiLivekitTokenRoute: typeof ApiLivekitTokenRoute
+  ApiRequestCallRoute: typeof ApiRequestCallRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,11 +111,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/escalations': {
+      id: '/api/escalations'
+      path: '/api/escalations'
+      fullPath: '/api/escalations'
+      preLoaderRoute: typeof ApiEscalationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/livekit-token': {
       id: '/api/livekit-token'
       path: '/api/livekit-token'
       fullPath: '/api/livekit-token'
       preLoaderRoute: typeof ApiLivekitTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/request-call': {
+      id: '/api/request-call'
+      path: '/api/request-call'
+      fullPath: '/api/request-call'
+      preLoaderRoute: typeof ApiRequestCallRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -88,7 +138,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SupportRoute: SupportRoute,
+  ApiEscalationsRoute: ApiEscalationsRoute,
   ApiLivekitTokenRoute: ApiLivekitTokenRoute,
+  ApiRequestCallRoute: ApiRequestCallRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
