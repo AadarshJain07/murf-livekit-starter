@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as ApiLivekitTokenRouteImport } from './routes/api/livekit-token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLivekitTokenRoute = ApiLivekitTokenRouteImport.update({
@@ -25,27 +31,31 @@ const ApiLivekitTokenRoute = ApiLivekitTokenRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/support': typeof SupportRoute
   '/api/livekit-token': typeof ApiLivekitTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/support': typeof SupportRoute
   '/api/livekit-token': typeof ApiLivekitTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/support': typeof SupportRoute
   '/api/livekit-token': typeof ApiLivekitTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/livekit-token'
+  fullPaths: '/' | '/support' | '/api/livekit-token'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/livekit-token'
-  id: '__root__' | '/' | '/api/livekit-token'
+  to: '/' | '/support' | '/api/livekit-token'
+  id: '__root__' | '/' | '/support' | '/api/livekit-token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SupportRoute: typeof SupportRoute
   ApiLivekitTokenRoute: typeof ApiLivekitTokenRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/livekit-token': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SupportRoute: SupportRoute,
   ApiLivekitTokenRoute: ApiLivekitTokenRoute,
 }
 export const routeTree = rootRouteImport

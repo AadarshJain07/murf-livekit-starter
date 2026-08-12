@@ -5,7 +5,7 @@ type Status = "idle" | "connecting" | "connected" | "error";
 export type Turn = { id: string; role: "user" | "agent"; text: string };
 
 /**
- * Live voice session against the PrepPilot AI LiveKit agent.
+ * Live voice session against the Revora AI LiveKit agent.
  * Mints a token from /api/livekit-token, joins the room, publishes the mic,
  * plays the agent's audio and surfaces live transcriptions.
  */
@@ -213,7 +213,7 @@ export function useLiveKitSession() {
     setLocalVideo(track);
   }, []);
 
-  /** Optional screen share — share a tab/window with PrepPilot. */
+  /** Optional screen share — share a tab/window with Revora. */
   const toggleScreenShare = useCallback(async () => {
     const room = roomRef.current;
     if (!room) return;

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
@@ -19,10 +19,10 @@ import {
   Zap,
 } from "lucide-react";
 
-import { AnimatedBackground } from "@/components/preppilot/AnimatedBackground";
-import { VideoTile } from "@/components/preppilot/VideoTile";
-import { VoiceOrb, type VoicePhase } from "@/components/preppilot/VoiceOrb";
-import { Waveform } from "@/components/preppilot/Waveform";
+import { AnimatedBackground } from "@/components/Revora/AnimatedBackground";
+import { VideoTile } from "@/components/Revora/VideoTile";
+import { VoiceOrb, type VoicePhase } from "@/components/Revora/VoiceOrb";
+import { Waveform } from "@/components/Revora/Waveform";
 import { Button } from "@/components/ui/button";
 import { useLiveKitSession } from "@/hooks/useLiveKitSession";
 
@@ -30,17 +30,17 @@ import { useLiveKitSession } from "@/hooks/useLiveKitSession";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "PrepPilot AI — Voice-First AI Tutor for Indian Students" },
+      { title: "Revora AI — Voice-First AI Tutor for Indian Students" },
       {
         name: "description",
         content:
-          "PrepPilot AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish.",
+          "Revora AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish.",
       },
-      { property: "og:title", content: "PrepPilot AI — Voice-First AI Tutor for Indian Students" },
+      { property: "og:title", content: "Revora AI — Voice-First AI Tutor for Indian Students" },
       {
         property: "og:description",
         content:
-          "PrepPilot AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish.",
+          "Revora AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -78,12 +78,12 @@ const PHASE_COPY: Record<VoicePhase, { label: string; title: string; hint: strin
   idle: {
     label: "Ready",
     title: "Ready to Learn",
-    hint: "Ask PrepPilot anything about your studies.",
+    hint: "Ask Revora anything about your studies.",
   },
   connecting: {
     label: "Connecting",
     title: "Connecting...",
-    hint: "Getting PrepPilot AI ready...",
+    hint: "Getting Revora AI ready...",
   },
   listening: {
     label: "Listening",
@@ -93,11 +93,11 @@ const PHASE_COPY: Record<VoicePhase, { label: string; title: string; hint: strin
   user: {
     label: "Listening",
     title: "Listening to you...",
-    hint: "Keep going, PrepPilot is following along.",
+    hint: "Keep going, Revora is following along.",
   },
   speaking: {
     label: "Speaking",
-    title: "PrepPilot is speaking...",
+    title: "Revora is speaking...",
     hint: "Listen in — you can interrupt anytime.",
   },
   ended: {
@@ -191,7 +191,7 @@ function Index() {
             </span>
             <span className="min-w-0">
               <span className="block truncate font-display text-lg font-bold tracking-tight">
-                PrepPilot AI
+                Revora AI
               </span>
               <span className="hidden text-[11px] tracking-[0.14em] text-muted-foreground uppercase sm:block">
                 Your Voice Learning Companion
@@ -220,7 +220,14 @@ function Index() {
             </span>
             {copy.label}
           </span>
+          <Link
+            to="/support"
+            className="ml-3 hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur transition hover:text-foreground sm:inline-flex"
+          >
+            Teacher support
+          </Link>
         </header>
+
 
         <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center px-4 pt-1 pb-40 sm:pb-44">
           {/* Hero */}
@@ -231,13 +238,13 @@ function Index() {
                 Murf · LiveKit · Gemini
               </span>
               <h1 className="mt-3 font-display text-3xl leading-tight font-extrabold text-balance sm:text-5xl">
-                PrepPilot <span className="text-gradient">AI</span>
+                Revora <span className="text-gradient">AI</span>
               </h1>
               <p className="mt-3 font-display text-lg font-semibold sm:text-xl">
                 Your Voice Learning Companion
               </p>
               <p className="mt-3 max-w-lg text-base text-pretty text-muted-foreground sm:text-lg">
-                Talk to PrepPilot, ask a study question, and learn through voice.
+                Talk to Revora, ask a study question, and learn through voice.
               </p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 {LANGUAGES.map((l) => (
@@ -309,7 +316,7 @@ function Index() {
                     />
                   ))}
                 </span>
-                <span className="text-gradient">PrepPilot is replying…</span>
+                <span className="text-gradient">Revora is replying…</span>
               </span>
             ) : (
               <p className="mt-4 min-h-6 text-sm text-muted-foreground">
@@ -331,11 +338,11 @@ function Index() {
         </div>
 
         <p className="mt-3 font-display text-base font-bold">
-          Let PrepPilot Remember You?
+          Let Revora Remember You?
         </p>
 
         <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-          PrepPilot can remember useful learning details like your name,
+          Revora can remember useful learning details like your name,
           class level, topics covered, and common mistakes to personalize
           future conversations.
         </p>
@@ -376,7 +383,7 @@ function Index() {
                 </span>
                 <p className="mt-3 font-display text-base font-bold">Microphone Access Needed</p>
                 <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                  PrepPilot needs microphone access to hear you. Please allow microphone access in
+                  Revora needs microphone access to hear you. Please allow microphone access in
                   your browser settings and try again.
                 </p>
                 <Button
@@ -393,7 +400,7 @@ function Index() {
               <div className="glass-strong animate-rise mt-4 max-w-md rounded-2xl px-4 py-3 text-left text-xs leading-relaxed">
                 <p className="font-semibold text-brand-cyan">Tutor isn&apos;t online yet</p>
                 <p className="mt-1 text-muted-foreground">
-                  You&apos;re connected to the room, but the PrepPilot agent isn&apos;t running.
+                  You&apos;re connected to the room, but the Revora agent isn&apos;t running.
                   Start it on your machine with{" "}
                   <code className="rounded bg-white/10 px-1.5 py-0.5">
                     uv run python src/agent.py dev
@@ -544,7 +551,7 @@ function Index() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Type instead of talking — English, Hindi or Hinglish…"
-              aria-label="Message PrepPilot AI"
+              aria-label="Message Revora AI"
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
             />
             <Button

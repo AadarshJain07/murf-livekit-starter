@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 
-DB_PATH = Path(__file__).resolve().parent.parent / "preppilot.db"
+DB_PATH = Path(__file__).resolve().parent.parent / "Revora.db"
 
 
 def get_connection():

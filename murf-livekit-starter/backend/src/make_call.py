@@ -1,4 +1,4 @@
-"""Trigger a PrepPilot AI outbound daily practice call.
+"""Trigger a Revora AI outbound daily practice call.
 
 Usage:
     uv run python src/make_call.py +919876543210
@@ -25,7 +25,7 @@ AGENT_NAME = os.getenv("AGENT_NAME", "my-agent")
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(description="Place a PrepPilot practice call")
+    parser = argparse.ArgumentParser(description="Place a Revora practice call")
     parser.add_argument("to", help="Phone number (+91...) or SIP URI to call")
     parser.add_argument("--subject", default="Physics")
     parser.add_argument("--level", default="Class 11")
@@ -39,7 +39,7 @@ async def main() -> None:
     if not os.getenv("SIP_OUTBOUND_TRUNK_ID"):
         raise SystemExit("Missing SIP_OUTBOUND_TRUNK_ID in .env.local")
 
-    room_name = f"preppilot-outbound-{uuid.uuid4().hex[:8]}"
+    room_name = f"Revora-outbound-{uuid.uuid4().hex[:8]}"
     metadata = json.dumps(
         {
             "sip_call_to": args.to,

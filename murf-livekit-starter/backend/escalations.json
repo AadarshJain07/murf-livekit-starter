@@ -1,0 +1,17 @@
+{
+  "generated_at": "2026-08-12T04:28:03.626470+00:00",
+  "escalations": [
+    {
+      "reference_id": "REV-WBY7V",
+      "student": "Aadarsh",
+      "reason": "Student is struggling with the mole concept and requested a human teacher quickly.",
+      "topic": "Mole Concept",
+      "tried": "Explained the definition of a mole and offered a practice question.",
+      "urgency": "medium",
+      "language_preference": "English",
+      "follow_up_method": "chat",
+      "status": "open",
+      "created_at": "2026-08-12T04:28:03.577574+00:00"
+    }
+  ]
+}

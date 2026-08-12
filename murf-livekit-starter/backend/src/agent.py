@@ -17,6 +17,7 @@ from livekit.agents import (
 from livekit.plugins import deepgram, google, murf, noise_cancellation, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
+from escalations import create_escalation as store_escalation
 from memory import get_user_memory, save_user_memory
 from outbound import (
     OutboundCallError,
@@ -150,6 +151,74 @@ class Assistant(Agent):
             f"Topic: {exercise['topic']}\n"
             f"Question: {exercise['question']}\n"
             f"Expected answer: {exercise['answer']}"
+        )
+
+    @function_tool
+    async def create_escalation(
+        self,
+        context: RunContext,
+        consent: bool,
+        reason: str,
+        topic: str,
+        tried: str,
+        urgency: str = "medium",
+        language_preference: str = "English",
+        follow_up_method: str = "in-app message",
+        student: str = "",
+    ) -> str:
+        """
+        Raise a support request so a human teacher can help this student.
+
+        Only call this after you explained that a teacher can help AND the
+        student clearly agreed to share a short summary (consent=True).
+        Never include passwords, OTPs, PINs, account numbers or any other
+        private information in the summary fields.
+        """
+
+        if not consent:
+            return (
+                "The student has not agreed to share a summary with a teacher. "
+                "Do not create a request and continue helping normally."
+            )
+
+        student_label = student.strip()
+        if not student_label:
+            memory = get_user_memory(self.user_id)
+            if memory and memory.get("name"):
+                student_label = memory["name"]
+            else:
+                student_label = self.user_id
+
+        try:
+            record = store_escalation(
+                student=student_label,
+                reason=reason,
+                topic=topic,
+                tried=tried,
+                urgency=urgency,
+                language_preference=language_preference,
+                follow_up_method=follow_up_method,
+            )
+        except Exception as e:  # noqa: BLE001 - never crash the voice session
+            logger.error("Escalation could not be saved: %s", e)
+            return (
+                "The support system is temporarily unavailable, so no request "
+                "was created. Tell the student honestly and keep helping them."
+            )
+
+        logger.info(
+            "Escalation created: %s (urgency=%s, topic=%s)",
+            record["reference_id"],
+            record["urgency"],
+            record["topic"],
+        )
+
+        return (
+            f"Escalation created with reference ID {record['reference_id']} "
+            f"and status open. Tell the student the reference ID, that a "
+            f"teacher can review it through the support system, and that you "
+            f"cannot promise an immediate response. Do not claim a teacher has "
+            f"already reviewed it. Then continue helping the student."
         )
 
     @function_tool

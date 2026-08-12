@@ -3,7 +3,7 @@ import { AccessToken } from "livekit-server-sdk";
 
 /**
  * Mints a short-lived LiveKit access token so the browser can join a room
- * where the PrepPilot AI agent worker is dispatched.
+ * where the Revora AI agent worker is dispatched.
  */
 export const Route = createFileRoute("/api/livekit-token")({
   server: {
@@ -24,8 +24,8 @@ export const Route = createFileRoute("/api/livekit-token")({
           );
         }
 
-        const identity = `preppilot_user_${Math.floor(Math.random() * 100000)}`;
-        const roomName = `preppilot_room_${Math.floor(Math.random() * 100000)}`;
+        const identity = `Revora_user_${Math.floor(Math.random() * 100000)}`;
+        const roomName = `Revora_room_${Math.floor(Math.random() * 100000)}`;
 
         const at = new AccessToken(apiKey, apiSecret, {
           identity,

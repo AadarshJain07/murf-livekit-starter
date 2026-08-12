@@ -1,4 +1,4 @@
-# PrepPilot AI
+# Revora AI
 
 A voice-first AI tutor built for Indian students. Explain concepts, revise lessons, and take quizzes — all through natural voice conversations in English, Hindi, or Hinglish.
 
@@ -24,7 +24,7 @@ A voice-first AI tutor built for Indian students. Explain concepts, revise lesso
 .
 ├── src/                          # Web application
 │   ├── routes/                   # Application routes
-│   ├── components/preppilot/     # PrepPilot UI components
+│   ├── components/Revora/     # Revora UI components
 │   ├── hooks/                    # LiveKit and voice hooks
 │   └── lib/                      # Utilities
 ├── murf-livekit-starter/backend/ # Python voice agent
@@ -112,13 +112,13 @@ Keep this process running while using the web application.
 
 1. Start the Python agent.
 
-2. Open the PrepPilot web application.
+2. Open the Revora web application.
 
 3. Click **Start Conversation**.
 
 4. Allow microphone access.
 
-5. Ask PrepPilot a question.
+5. Ask Revora a question.
 
 6. Try a practice request such as:
 
@@ -128,7 +128,7 @@ Keep this process running while using the web application.
 
 ## Day 5 — Learning Exercise Tool
 
-PrepPilot includes a `get_next_exercise` function tool for the Learning & Literacy track.
+Revora includes a `get_next_exercise` function tool for the Learning & Literacy track.
 
 The tool currently uses a **local hand-built dataset** containing practice exercises for:
 
@@ -157,7 +157,7 @@ This approach is used for the Day 5 prototype so the agent can demonstrate relia
 
 ### Outbound use case: Scheduled Daily Practice Call
 
-PrepPilot AI calls the learner at the practice time they selected, explains why
+Revora AI calls the learner at the practice time they selected, explains why
 it is calling, offers an easy opt-out, and — if the learner agrees — asks one
 Class 11 practice question fetched through the existing `get_next_exercise`
 tool. Voice is generated in real time with **Murf Falcon TTS**, speech is
@@ -176,7 +176,7 @@ learners with low reading confidence too.
 ```text
 1. call initiated        -> agent asks LiveKit SIP to dial the learner
 2. call connected        -> learner picks up
-3. opening               -> "Hi, this is PrepPilot AI, your learning assistant..."
+3. opening               -> "Hi, this is Revora AI, your learning assistant..."
                             reason for calling + "say 'stop calls' to end"
 4. consent question      -> "Would you like today's quick practice question?"
 5a. opt-out              -> polite acknowledgement, call ends immediately
@@ -189,8 +189,8 @@ learners with low reading confidence too.
 ### SIP / telephony architecture
 
 ```text
-Browser:   Frontend -> LiveKit -> PrepPilot Agent            (Day 1-5, unchanged)
-Outbound:  PrepPilot Agent -> LiveKit SIP -> SIP/Linphone endpoint -> phone
+Browser:   Frontend -> LiveKit -> Revora Agent            (Day 1-5, unchanged)
+Outbound:  Revora Agent -> LiveKit SIP -> SIP/Linphone endpoint -> phone
 ```
 
 The same agent process handles both. A LiveKit job that carries outbound
