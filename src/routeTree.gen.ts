@@ -10,14 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as QuestRouteImport } from './routes/quest'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as ApiEscalationsRouteImport } from './routes/api/escalations'
 import { Route as ApiLivekitTokenRouteImport } from './routes/api/livekit-token'
+import { Route as ApiQuestRouteImport } from './routes/api/quest'
 import { Route as ApiRequestCallRouteImport } from './routes/api/request-call'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuestRoute = QuestRouteImport.update({
+  id: '/quest',
+  path: '/quest',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupportRoute = SupportRouteImport.update({
@@ -35,6 +42,11 @@ const ApiLivekitTokenRoute = ApiLivekitTokenRouteImport.update({
   path: '/api/livekit-token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiQuestRoute = ApiQuestRouteImport.update({
+  id: '/api/quest',
+  path: '/api/quest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiRequestCallRoute = ApiRequestCallRouteImport.update({
   id: '/api/request-call',
   path: '/api/request-call',
@@ -43,55 +55,69 @@ const ApiRequestCallRoute = ApiRequestCallRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/quest': typeof QuestRoute
   '/support': typeof SupportRoute
   '/api/escalations': typeof ApiEscalationsRoute
   '/api/livekit-token': typeof ApiLivekitTokenRoute
+  '/api/quest': typeof ApiQuestRoute
   '/api/request-call': typeof ApiRequestCallRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/quest': typeof QuestRoute
   '/support': typeof SupportRoute
   '/api/escalations': typeof ApiEscalationsRoute
   '/api/livekit-token': typeof ApiLivekitTokenRoute
+  '/api/quest': typeof ApiQuestRoute
   '/api/request-call': typeof ApiRequestCallRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/quest': typeof QuestRoute
   '/support': typeof SupportRoute
   '/api/escalations': typeof ApiEscalationsRoute
   '/api/livekit-token': typeof ApiLivekitTokenRoute
+  '/api/quest': typeof ApiQuestRoute
   '/api/request-call': typeof ApiRequestCallRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/quest'
     | '/support'
     | '/api/escalations'
     | '/api/livekit-token'
+    | '/api/quest'
     | '/api/request-call'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/quest'
     | '/support'
     | '/api/escalations'
     | '/api/livekit-token'
+    | '/api/quest'
     | '/api/request-call'
   id:
     | '__root__'
     | '/'
+    | '/quest'
     | '/support'
     | '/api/escalations'
     | '/api/livekit-token'
+    | '/api/quest'
     | '/api/request-call'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  QuestRoute: typeof QuestRoute
   SupportRoute: typeof SupportRoute
   ApiEscalationsRoute: typeof ApiEscalationsRoute
   ApiLivekitTokenRoute: typeof ApiLivekitTokenRoute
+  ApiQuestRoute: typeof ApiQuestRoute
   ApiRequestCallRoute: typeof ApiRequestCallRoute
 }
 
@@ -102,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quest': {
+      id: '/quest'
+      path: '/quest'
+      fullPath: '/quest'
+      preLoaderRoute: typeof QuestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/support': {
@@ -125,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLivekitTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/quest': {
+      id: '/api/quest'
+      path: '/api/quest'
+      fullPath: '/api/quest'
+      preLoaderRoute: typeof ApiQuestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/request-call': {
       id: '/api/request-call'
       path: '/api/request-call'
@@ -137,9 +177,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  QuestRoute: QuestRoute,
   SupportRoute: SupportRoute,
   ApiEscalationsRoute: ApiEscalationsRoute,
   ApiLivekitTokenRoute: ApiLivekitTokenRoute,
+  ApiQuestRoute: ApiQuestRoute,
   ApiRequestCallRoute: ApiRequestCallRoute,
 }
 export const routeTree = rootRouteImport

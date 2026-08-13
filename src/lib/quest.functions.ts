@@ -1,3 +1,8 @@
+const BACKEND_URL =
+  typeof window !== "undefined"
+    ? (import.meta as any).env?.VITE_BACKEND_URL || ""
+    : "";
+
 const DEFAULT_QUEST_STATE = {
   level: 1,
   xp: 0,
@@ -9,6 +14,25 @@ const DEFAULT_QUEST_STATE = {
 };
 
 export async function getQuestState() {
+  // 1. Try the Python backend API (live data from SQLite)
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/quest-state`);
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          ...DEFAULT_QUEST_STATE,
+          ...data,
+          sessions: { ...DEFAULT_QUEST_STATE.sessions, ...(data.sessions ?? {}) },
+        };
+      }
+      console.warn(`[getQuestState] Backend returned ${res.status} — falling back`);
+    } catch (err) {
+      console.warn("[getQuestState] Backend unreachable — falling back:", err);
+    }
+  }
+
+  // 2. Fallback: TanStack server-side API route (reads JSON file)
   try {
     const res = await fetch("/api/quest");
     if (!res.ok) {
@@ -16,7 +40,6 @@ export async function getQuestState() {
       return DEFAULT_QUEST_STATE;
     }
     const data = await res.json();
-    // Ensure required fields always exist
     return {
       ...DEFAULT_QUEST_STATE,
       ...data,

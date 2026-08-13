@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { 
   ArrowLeft,
   Flame, 
@@ -11,7 +11,8 @@ import {
   Activity,
   CheckCircle2,
   XCircle,
-  PhoneCall
+  PhoneCall,
+  RefreshCw
 } from "lucide-react";
 import { getQuestState } from "@/lib/quest.functions";
 
@@ -19,19 +20,37 @@ export const Route = createFileRoute("/quest")({
   component: QuestDashboard,
 });
 
+const REFRESH_INTERVAL_MS = 30_000; // 30 seconds
+
 function QuestDashboard() {
   const [state, setState] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchData = useCallback(async (isManual = false) => {
+    if (isManual) setRefreshing(true);
+    try {
+      const data = await getQuestState();
+      setState(data);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    getQuestState().then(data => {
-      setState(data);
-      setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      setLoading(false);
-    });
-  }, []);
+    fetchData();
+    // Auto-refresh every 30 seconds
+    intervalRef.current = setInterval(() => fetchData(), REFRESH_INTERVAL_MS);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [fetchData]);
 
   if (loading) {
     return (
@@ -85,13 +104,24 @@ function QuestDashboard() {
             </div>
           </div>
           
-          <Link 
-            to="/" 
-            className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all text-sm font-medium text-zinc-300"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
-            Back Home
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => fetchData(true)}
+              disabled={refreshing}
+              title={lastUpdated ? `Last updated at ${lastUpdated.toLocaleTimeString()}` : "Refresh Data"}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all text-sm font-medium text-zinc-300 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-orange-400" : ""}`} />
+              {refreshing ? "Syncing..." : "Refresh"}
+            </button>
+            <Link 
+              to="/" 
+              className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all text-sm font-medium text-zinc-300"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> 
+              Back Home
+            </Link>
+          </div>
         </header>
 
         {/* Top Stats Grid */}

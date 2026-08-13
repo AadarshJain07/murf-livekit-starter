@@ -1,5 +1,7 @@
-import fs from "fs";
-import path from "path";
+const BACKEND_URL =
+  typeof window !== "undefined"
+    ? (import.meta as any).env?.VITE_BACKEND_URL || ""
+    : "";
 
 export type Escalation = {
   reference_id: string;
@@ -15,7 +17,21 @@ export type Escalation = {
 };
 
 export async function getEscalations(): Promise<Escalation[]> {
-  // If running in browser, fetch from API endpoint
+  // 1. Try the Python backend API (live data from SQLite)
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/escalations`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.escalations ?? [];
+      }
+      console.warn(`[getEscalations] Backend returned ${res.status} — falling back`);
+    } catch (err) {
+      console.warn("[getEscalations] Backend unreachable — falling back:", err);
+    }
+  }
+
+  // 2. Fallback: TanStack server-side API route (reads JSON file)
   if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/escalations");
@@ -28,30 +44,6 @@ export async function getEscalations(): Promise<Escalation[]> {
     } catch (error) {
       console.error("Failed to fetch escalations from API:", error);
       return [];
-    }
-  }
-
-  // Server-side fallback reading candidate paths
-  const candidatePaths = [
-    path.resolve(process.cwd(), "murf-livekit-starter", "backend", "escalations.json"),
-    path.resolve(process.cwd(), "backend", "escalations.json"),
-    path.resolve(process.cwd(), "src", "backend", "escalations.json"),
-    path.resolve(process.cwd(), "src", "routes", "backend", "escalations.json"),
-  ];
-
-  for (const filePath of candidatePaths) {
-    try {
-      if (fs.existsSync(filePath)) {
-        const raw = fs.readFileSync(filePath, "utf-8");
-        if (raw.trim()) {
-          const data = JSON.parse(raw);
-          if (Array.isArray(data.escalations) && data.escalations.length > 0) {
-            return data.escalations as Escalation[];
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to read escalation data at ${filePath}:`, error);
     }
   }
 
