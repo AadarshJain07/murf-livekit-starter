@@ -10,11 +10,11 @@
   },
   "streak": 1,
   "sessions": {
-    "total": 14,
-    "successful": 10,
+    "total": 15,
+    "successful": 11,
     "failed": 0,
     "in_progress": 4,
-    "success_rate": 71
+    "success_rate": 73
   },
   "overall_mastery": 53,
   "mastery": [
@@ -192,6 +192,17 @@
   },
   "recent_sessions": [
     {
+      "session_id": "CONV-9114E13F",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T13:10:44.825135+00:00",
+      "ended_at": "2026-08-13T13:13:16.243945+00:00",
+      "duration_seconds": 151
+    },
+    {
       "session_id": "QST-C21AE49D",
       "subject": "Physics",
       "topic": "Mechanics",
@@ -267,17 +278,6 @@
       "started_at": "2026-08-13T12:03:41.037540+00:00",
       "ended_at": "2026-08-13T12:11:49.633200+00:00",
       "duration_seconds": 488
-    },
-    {
-      "session_id": "CONV-74F414C6",
-      "subject": "conversation",
-      "topic": "general",
-      "channel": "browser",
-      "outcome": "success",
-      "xp_earned": 0,
-      "started_at": "2026-08-13T12:02:40.610398+00:00",
-      "ended_at": "2026-08-13T12:03:49.206704+00:00",
-      "duration_seconds": 68
     }
   ],
   "next_quest": {
@@ -290,5 +290,5 @@
     "reason": "You've missed Newton's Laws 2 times (33% accuracy). This quest targets exactly that.",
     "prompt": "Start a Revora Voice Quest on Newton's Laws in Physics and target my weak concept: Newton's Laws."
   },
-  "updated_at": "2026-08-13T13:05:22.128133+00:00"
+  "updated_at": "2026-08-13T13:13:16.303308+00:00"
 }

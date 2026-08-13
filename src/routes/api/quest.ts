@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import fs from "node:fs";
 import path from "node:path";
 
-// Default placeholder quest state to use when no persisted state is found.
+const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || "http://127.0.0.1:8082";
+
+// Default placeholder quest state when backend and JSON are unavailable.
 const defaultQuestState = {
   level: 1,
   xp: 0,
@@ -13,35 +15,26 @@ const defaultQuestState = {
   next_quest: null,
 };
 
-function readQuestState() {
-  // Possible locations where the quest_state.json might reside.
+function readQuestStateFromFile() {
   const candidatePaths = [
     path.resolve(process.cwd(), "murf-livekit-starter", "backend", "quest_state.json"),
     path.resolve(process.cwd(), "backend", "quest_state.json"),
-    path.resolve(process.cwd(), "src", "backend", "quest_state.json"),
-    path.resolve(process.cwd(), "src", "routes", "backend", "quest_state.json"),
-    // Fallback to the directory of this file.
-    path.resolve(__dirname, "..", "..", "backend", "quest_state.json"),
+    path.resolve(__dirname, "..", "..", "..", "murf-livekit-starter", "backend", "quest_state.json"),
   ];
 
-  console.log("[readQuestState] process.cwd():", process.cwd());
-
   for (const filePath of candidatePaths) {
-    console.log("[readQuestState] Checking path:", filePath);
     try {
       if (fs.existsSync(filePath)) {
         const raw = fs.readFileSync(filePath, "utf-8");
         if (raw.trim()) {
-          console.log("[readQuestState] Found at:", filePath);
           return JSON.parse(raw);
         }
       }
     } catch (error) {
-      console.error(`[readQuestState] Failed to read quest state at ${filePath}:`, error);
+      console.error(`[readQuestStateFromFile] Failed at ${filePath}:`, error);
     }
   }
 
-  console.log("[readQuestState] No quest_state.json found – using default state");
   return defaultQuestState;
 }
 
@@ -49,7 +42,21 @@ export const Route = createFileRoute("/api/quest")({
   server: {
     handlers: {
       GET: async () => {
-        const state = readQuestState();
+        // 1. Try live Python backend (reads directly from Revora.db)
+        try {
+          const res = await fetch(`${PYTHON_BACKEND_URL}/api/quest-state`, {
+            signal: AbortSignal.timeout(3000),
+          });
+          if (res.ok) {
+            const liveState = await res.json();
+            return Response.json(liveState);
+          }
+        } catch {
+          // Python API server not running — fallback to disk JSON mirror
+        }
+
+        // 2. Fallback to murf-livekit-starter/backend/quest_state.json
+        const state = readQuestStateFromFile();
         return Response.json(state);
       },
     },
