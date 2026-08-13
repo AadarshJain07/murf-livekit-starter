@@ -35,6 +35,8 @@ from quest import (
     end_session,
     get_state,
     build_boss_plan,
+    log_conversation_start,
+    log_conversation_end,
 )
 
 logger = logging.getLogger("agent")
@@ -677,6 +679,20 @@ async def run_browser_session(ctx: JobContext) -> None:
     )
 
     await ctx.connect()
+
+    # Track this call in the analytics dashboard.
+    # We open a CONV- session row immediately so the "total calls" counter
+    # increments even if the student hangs up without completing a quest.
+    conv_session_id = log_conversation_start(user_id=user_id, channel="browser")
+
+    @ctx.room.on("disconnected")
+    def _on_disconnected(*_args):
+        """Mark the conversation session as successful on clean disconnect."""
+        log_conversation_end(
+            user_id=user_id,
+            session_id=conv_session_id,
+            outcome="success",
+        )
 
     # Read memory directly from the database.
     # This avoids triggering a Gemini function call during startup.

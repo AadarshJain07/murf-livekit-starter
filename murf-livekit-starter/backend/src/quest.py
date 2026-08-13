@@ -711,5 +711,76 @@ def log_event(event: str, **fields) -> None:
     print(f"[QUEST] {event} {detail}".rstrip())
 
 
+# ---------------------------------------------------------------------------
+# Conversation-level session tracking (normal, non-quest calls)
+# ---------------------------------------------------------------------------
+
+
+def log_conversation_start(user_id: str = DEFAULT_USER, channel: str = "browser") -> str:
+    """Create a session row for a normal voice conversation (no quest).
+
+    Returns the generated session ID so the caller can close it later.
+    The row uses the same ``quest_sessions`` table; a ``CONV-`` prefix
+    distinguishes it from quest rows (``QST-``).
+    """
+    init_quest()
+
+    session_id = "CONV-" + uuid.uuid4().hex[:8].upper()
+
+    conn = _connect()
+    conn.execute(
+        """
+        INSERT INTO quest_sessions (
+            session_id, user_id, subject, topic, channel,
+            outcome, xp_earned, started_at, ended_at
+        ) VALUES (?, ?, 'conversation', 'general', ?, 'incomplete', 0, ?, NULL)
+        """,
+        (session_id, user_id, _sanitize(channel, 20) or "browser", _now()),
+    )
+    conn.commit()
+    conn.close()
+
+    _write_json_mirror(user_id)
+    log_event("conversation_start", session_id=session_id, channel=channel)
+    return session_id
+
+
+def log_conversation_end(
+    user_id: str = DEFAULT_USER,
+    session_id: str = "",
+    outcome: str = "success",
+) -> None:
+    """Close the conversation session opened by ``log_conversation_start``.
+
+    ``outcome`` should be ``"success"`` for a clean disconnect or ``"failed"``
+    if the session was forcibly terminated / errored.
+    """
+    if not session_id:
+        log_event("conversation_end_skipped", reason="no session_id")
+        return
+
+    safe_outcome = (
+        "success"
+        if outcome.strip().lower() in ("success", "successful", "completed")
+        else "failed"
+    )
+
+    init_quest()
+    conn = _connect()
+    conn.execute(
+        """
+        UPDATE quest_sessions
+        SET outcome = ?, ended_at = ?
+        WHERE session_id = ? AND ended_at IS NULL
+        """,
+        (safe_outcome, _now(), session_id),
+    )
+    conn.commit()
+    conn.close()
+
+    _write_json_mirror(user_id)
+    log_event("conversation_end", session_id=session_id, outcome=safe_outcome)
+
+
 if __name__ == "__main__":
     print(json.dumps(_write_json_mirror(), indent=2))
