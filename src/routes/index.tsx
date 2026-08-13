@@ -26,6 +26,7 @@ import {
   BookmarkPlus,
   Volume2,
   PhoneCall,
+  BarChart3,
 } from "lucide-react";
 
 import { AnimatedBackground } from "@/components/Revora/AnimatedBackground";
@@ -232,6 +233,13 @@ function Index() {
 
           {/* Status Badge & Actions */}
           <div className="flex items-center gap-2.5">
+            <Link
+              to="/quest"
+              className="inline-flex items-center justify-center rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30 px-3.5 py-1.5 text-xs font-bold hover:bg-orange-500/25 transition shadow-sm"
+            >
+              <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
+              Analytics
+            </Link>
             <Button
               type="button"
               onClick={() => setIsCallModalOpen(true)}
