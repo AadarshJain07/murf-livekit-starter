@@ -1,32 +1,23 @@
 {
   "user_id": "demo-student-001",
-  "xp": 840,
+  "xp": 845,
   "level": 4,
   "level_progress": {
-    "current": 90,
+    "current": 95,
     "needed": 250,
-    "percent": 36,
+    "percent": 38,
     "next_level_xp": 1000
   },
   "streak": 1,
   "sessions": {
-    "total": 10,
-    "successful": 7,
+    "total": 14,
+    "successful": 10,
     "failed": 0,
-    "in_progress": 3,
-    "success_rate": 70
+    "in_progress": 4,
+    "success_rate": 71
   },
-  "overall_mastery": 56,
+  "overall_mastery": 53,
   "mastery": [
-    {
-      "subject": "Physics",
-      "topic": "Mechanics",
-      "mastery": 85,
-      "attempts": 3,
-      "correct": 3,
-      "status": "mastered",
-      "last_practiced": "2026-08-13T05:26:47.804372+00:00"
-    },
     {
       "subject": "Physics",
       "topic": "Newton's Laws",
@@ -35,6 +26,15 @@
       "correct": 4,
       "status": "in-progress",
       "last_practiced": "2026-08-13T12:10:37.468825+00:00"
+    },
+    {
+      "subject": "Physics",
+      "topic": "Mechanics",
+      "mastery": 70,
+      "attempts": 4,
+      "correct": 3,
+      "status": "in-progress",
+      "last_practiced": "2026-08-13T13:04:45.761673+00:00"
     },
     {
       "subject": "Physics",
@@ -186,11 +186,55 @@
   ],
   "current_quest": {
     "subject": "Physics",
-    "topic": "General Physics",
-    "session_id": "QST-288EEDCF",
+    "topic": "Mechanics",
+    "session_id": "QST-C21AE49D",
     "status": "active"
   },
   "recent_sessions": [
+    {
+      "session_id": "QST-C21AE49D",
+      "subject": "Physics",
+      "topic": "Mechanics",
+      "channel": "browser",
+      "outcome": "incomplete",
+      "xp_earned": 5,
+      "started_at": "2026-08-13T13:03:51.998609+00:00",
+      "ended_at": null,
+      "duration_seconds": null
+    },
+    {
+      "session_id": "CONV-DF0D3FC2",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T12:59:55.939914+00:00",
+      "ended_at": "2026-08-13T13:05:22.112348+00:00",
+      "duration_seconds": 326
+    },
+    {
+      "session_id": "CONV-71D21941",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T12:50:22.153268+00:00",
+      "ended_at": "2026-08-13T12:50:50.912557+00:00",
+      "duration_seconds": 28
+    },
+    {
+      "session_id": "CONV-9A476773",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T12:45:46.010510+00:00",
+      "ended_at": "2026-08-13T12:49:23.136255+00:00",
+      "duration_seconds": 217
+    },
     {
       "session_id": "CONV-FD23B95C",
       "subject": "conversation",
@@ -234,50 +278,6 @@
       "started_at": "2026-08-13T12:02:40.610398+00:00",
       "ended_at": "2026-08-13T12:03:49.206704+00:00",
       "duration_seconds": 68
-    },
-    {
-      "session_id": "CONV-AC376A6D",
-      "subject": "conversation",
-      "topic": "general",
-      "channel": "browser",
-      "outcome": "success",
-      "xp_earned": 0,
-      "started_at": "2026-08-13T12:01:49.748065+00:00",
-      "ended_at": "2026-08-13T12:02:51.036601+00:00",
-      "duration_seconds": 61
-    },
-    {
-      "session_id": "CONV-8616E5AD",
-      "subject": "conversation",
-      "topic": "general",
-      "channel": "browser",
-      "outcome": "success",
-      "xp_earned": 0,
-      "started_at": "2026-08-13T11:54:07.026521+00:00",
-      "ended_at": "2026-08-13T11:55:55.920158+00:00",
-      "duration_seconds": 108
-    },
-    {
-      "session_id": "QST-288EEDCF",
-      "subject": "Physics",
-      "topic": "General Physics",
-      "channel": "browser",
-      "outcome": "incomplete",
-      "xp_earned": 5,
-      "started_at": "2026-08-13T08:27:59.062888+00:00",
-      "ended_at": null,
-      "duration_seconds": null
-    },
-    {
-      "session_id": "QST-0D493D53",
-      "subject": "Physics",
-      "topic": "Newton's Laws",
-      "channel": "browser",
-      "outcome": "incomplete",
-      "xp_earned": 0,
-      "started_at": "2026-08-13T06:54:58.477427+00:00",
-      "ended_at": null,
-      "duration_seconds": null
     }
   ],
   "next_quest": {
@@ -290,5 +290,5 @@
     "reason": "You've missed Newton's Laws 2 times (33% accuracy). This quest targets exactly that.",
     "prompt": "Start a Revora Voice Quest on Newton's Laws in Physics and target my weak concept: Newton's Laws."
   },
-  "updated_at": "2026-08-13T12:23:26.812999+00:00"
+  "updated_at": "2026-08-13T13:05:22.128133+00:00"
 }
