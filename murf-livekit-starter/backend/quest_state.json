@@ -10,11 +10,11 @@
   },
   "streak": 1,
   "sessions": {
-    "total": 15,
-    "successful": 11,
+    "total": 20,
+    "successful": 16,
     "failed": 0,
     "in_progress": 4,
-    "success_rate": 73
+    "success_rate": 80
   },
   "overall_mastery": 53,
   "mastery": [
@@ -192,6 +192,61 @@
   },
   "recent_sessions": [
     {
+      "session_id": "CONV-9EC4210D",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T17:09:31.998936+00:00",
+      "ended_at": "2026-08-13T17:10:37.755754+00:00",
+      "duration_seconds": 65
+    },
+    {
+      "session_id": "CONV-0AEDF389",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T13:30:01.965332+00:00",
+      "ended_at": "2026-08-13T13:30:26.040888+00:00",
+      "duration_seconds": 24
+    },
+    {
+      "session_id": "CONV-C1218D47",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T13:24:51.789755+00:00",
+      "ended_at": "2026-08-13T13:26:21.286948+00:00",
+      "duration_seconds": 89
+    },
+    {
+      "session_id": "CONV-B58E3ABA",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T13:21:48.625405+00:00",
+      "ended_at": "2026-08-13T13:22:00.351170+00:00",
+      "duration_seconds": 11
+    },
+    {
+      "session_id": "CONV-F611B8E2",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T13:21:48.623329+00:00",
+      "ended_at": "2026-08-13T13:22:03.812696+00:00",
+      "duration_seconds": 15
+    },
+    {
       "session_id": "CONV-9114E13F",
       "subject": "conversation",
       "topic": "general",
@@ -223,61 +278,6 @@
       "started_at": "2026-08-13T12:59:55.939914+00:00",
       "ended_at": "2026-08-13T13:05:22.112348+00:00",
       "duration_seconds": 326
-    },
-    {
-      "session_id": "CONV-71D21941",
-      "subject": "conversation",
-      "topic": "general",
-      "channel": "browser",
-      "outcome": "success",
-      "xp_earned": 0,
-      "started_at": "2026-08-13T12:50:22.153268+00:00",
-      "ended_at": "2026-08-13T12:50:50.912557+00:00",
-      "duration_seconds": 28
-    },
-    {
-      "session_id": "CONV-9A476773",
-      "subject": "conversation",
-      "topic": "general",
-      "channel": "browser",
-      "outcome": "success",
-      "xp_earned": 0,
-      "started_at": "2026-08-13T12:45:46.010510+00:00",
-      "ended_at": "2026-08-13T12:49:23.136255+00:00",
-      "duration_seconds": 217
-    },
-    {
-      "session_id": "CONV-FD23B95C",
-      "subject": "conversation",
-      "topic": "general",
-      "channel": "browser",
-      "outcome": "success",
-      "xp_earned": 0,
-      "started_at": "2026-08-13T12:21:39.331834+00:00",
-      "ended_at": "2026-08-13T12:23:26.672539+00:00",
-      "duration_seconds": 107
-    },
-    {
-      "session_id": "QST-6E18CD4F",
-      "subject": "Physics",
-      "topic": "Newton's Laws",
-      "channel": "browser",
-      "outcome": "success",
-      "xp_earned": 465,
-      "started_at": "2026-08-13T12:04:49.792705+00:00",
-      "ended_at": "2026-08-13T12:10:39.244824+00:00",
-      "duration_seconds": 349
-    },
-    {
-      "session_id": "CONV-F00C1E9D",
-      "subject": "conversation",
-      "topic": "general",
-      "channel": "browser",
-      "outcome": "success",
-      "xp_earned": 0,
-      "started_at": "2026-08-13T12:03:41.037540+00:00",
-      "ended_at": "2026-08-13T12:11:49.633200+00:00",
-      "duration_seconds": 488
     }
   ],
   "next_quest": {
@@ -290,5 +290,5 @@
     "reason": "You've missed Newton's Laws 2 times (33% accuracy). This quest targets exactly that.",
     "prompt": "Start a Revora Voice Quest on Newton's Laws in Physics and target my weak concept: Newton's Laws."
   },
-  "updated_at": "2026-08-13T13:13:16.303308+00:00"
+  "updated_at": "2026-08-13T17:10:37.795558+00:00"
 }

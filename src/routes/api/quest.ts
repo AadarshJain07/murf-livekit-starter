@@ -1,6 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import fs from "node:fs";
-import path from "node:path";
 
 const PYTHON_BACKEND_URL = process.env.PYTHON_BACKEND_URL || "http://127.0.0.1:8082";
 
@@ -15,24 +13,31 @@ const defaultQuestState = {
   next_quest: null,
 };
 
-function readQuestStateFromFile() {
-  const candidatePaths = [
-    path.resolve(process.cwd(), "murf-livekit-starter", "backend", "quest_state.json"),
-    path.resolve(process.cwd(), "backend", "quest_state.json"),
-    path.resolve(__dirname, "..", "..", "..", "murf-livekit-starter", "backend", "quest_state.json"),
-  ];
+async function readQuestStateFromFile() {
+  if (typeof window !== "undefined") return defaultQuestState;
+  try {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
 
-  for (const filePath of candidatePaths) {
-    try {
-      if (fs.existsSync(filePath)) {
-        const raw = fs.readFileSync(filePath, "utf-8");
-        if (raw.trim()) {
-          return JSON.parse(raw);
+    const candidatePaths = [
+      path.resolve(process.cwd(), "murf-livekit-starter", "backend", "quest_state.json"),
+      path.resolve(process.cwd(), "backend", "quest_state.json"),
+    ];
+
+    for (const filePath of candidatePaths) {
+      try {
+        if (fs.existsSync(filePath)) {
+          const raw = fs.readFileSync(filePath, "utf-8");
+          if (raw.trim()) {
+            return JSON.parse(raw);
+          }
         }
+      } catch (error) {
+        console.error(`[readQuestStateFromFile] Failed at ${filePath}:`, error);
       }
-    } catch (error) {
-      console.error(`[readQuestStateFromFile] Failed at ${filePath}:`, error);
     }
+  } catch (err) {
+    console.error("[readQuestStateFromFile] Dynamic node import failed:", err);
   }
 
   return defaultQuestState;
@@ -56,9 +61,10 @@ export const Route = createFileRoute("/api/quest")({
         }
 
         // 2. Fallback to murf-livekit-starter/backend/quest_state.json
-        const state = readQuestStateFromFile();
+        const state = await readQuestStateFromFile();
         return Response.json(state);
       },
     },
   },
 } as any);
+

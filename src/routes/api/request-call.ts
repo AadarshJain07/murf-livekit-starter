@@ -1,6 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import fs from "node:fs";
-import path from "node:path";
 
 function generateRefId(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -11,7 +9,10 @@ function generateRefId(): string {
   return id;
 }
 
-function getJsonFilePath(): string {
+async function getJsonFilePath(): Promise<string> {
+  const path = await import("node:path");
+  const fs = await import("node:fs");
+
   const candidatePaths = [
     path.resolve(process.cwd(), "murf-livekit-starter", "backend", "escalations.json"),
     path.resolve(process.cwd(), "backend", "escalations.json"),
@@ -159,7 +160,10 @@ export const Route = createFileRoute("/api/request-call")({
           };
 
           // Save to JSON file
-          const filePath = getJsonFilePath();
+          const fs = await import("node:fs");
+          const path = await import("node:path");
+
+          const filePath = await getJsonFilePath();
           let existingData: { generated_at?: string; escalations: any[] } = { escalations: [] };
 
           if (fs.existsSync(filePath)) {
