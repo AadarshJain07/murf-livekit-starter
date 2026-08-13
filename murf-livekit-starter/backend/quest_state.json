@@ -1,0 +1,180 @@
+{
+  "user_id": "demo-student-001",
+  "xp": 335,
+  "level": 2,
+  "level_progress": {
+    "current": 85,
+    "needed": 250,
+    "percent": 34,
+    "next_level_xp": 500
+  },
+  "streak": 1,
+  "sessions": {
+    "total": 1,
+    "successful": 1,
+    "failed": 0,
+    "in_progress": 0,
+    "success_rate": 100
+  },
+  "overall_mastery": 85,
+  "mastery": [
+    {
+      "subject": "Physics",
+      "topic": "Mechanics",
+      "mastery": 85,
+      "attempts": 3,
+      "correct": 3,
+      "status": "mastered",
+      "last_practiced": "2026-08-13T05:26:47.804372+00:00"
+    }
+  ],
+  "worlds": [
+    {
+      "subject": "Physics",
+      "boss": "NEWTON",
+      "mastery": 0,
+      "topics": [
+        {
+          "topic": "Kinematics",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        },
+        {
+          "topic": "Laws of Motion",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        },
+        {
+          "topic": "Work & Energy",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        },
+        {
+          "topic": "Gravitation",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        }
+      ],
+      "boss_unlocked": false
+    },
+    {
+      "subject": "Chemistry",
+      "boss": "MENDELEEV",
+      "mastery": 0,
+      "topics": [
+        {
+          "topic": "Structure of Atom",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        },
+        {
+          "topic": "Periodic Table",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        },
+        {
+          "topic": "Chemical Bonding",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        }
+      ],
+      "boss_unlocked": false
+    },
+    {
+      "subject": "Mathematics",
+      "boss": "EULER",
+      "mastery": 0,
+      "topics": [
+        {
+          "topic": "Sets",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        },
+        {
+          "topic": "Functions",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        },
+        {
+          "topic": "Trigonometry",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        },
+        {
+          "topic": "Complex Numbers",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        }
+      ],
+      "boss_unlocked": false
+    },
+    {
+      "subject": "Biology",
+      "boss": "DARWIN",
+      "mastery": 0,
+      "topics": [
+        {
+          "topic": "Cell",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        },
+        {
+          "topic": "Biomolecules",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        },
+        {
+          "topic": "Plant Physiology",
+          "mastery": 0,
+          "attempts": 0,
+          "status": "locked"
+        }
+      ],
+      "boss_unlocked": false
+    }
+  ],
+  "weaknesses": [],
+  "current_quest": {
+    "subject": "Physics",
+    "topic": "Mechanics",
+    "session_id": "QST-D3D696DC",
+    "status": "success"
+  },
+  "recent_sessions": [
+    {
+      "session_id": "QST-D3D696DC",
+      "subject": "Physics",
+      "topic": "Mechanics",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 335,
+      "started_at": "2026-08-13T05:22:30.309022+00:00",
+      "ended_at": "2026-08-13T05:26:52.431766+00:00",
+      "duration_seconds": 262
+    }
+  ],
+  "next_quest": {
+    "subject": "Physics",
+    "topic": "Kinematics",
+    "title": "Kinematics \u2014 First Quest",
+    "difficulty": "easy",
+    "type": "topic",
+    "boss": null,
+    "reason": "You haven't started any quest yet. Kinematics unlocks the Physics World.",
+    "prompt": "Start my first Revora Voice Quest on Kinematics."
+  },
+  "updated_at": "2026-08-13T05:26:53.578827+00:00"
+}
