@@ -34,6 +34,7 @@ import { RequestCallModal } from "@/components/Revora/RequestCallModal";
 import { VideoTile } from "@/components/Revora/VideoTile";
 import { VoiceOrb, type VoicePhase } from "@/components/Revora/VoiceOrb";
 import { Waveform } from "@/components/Revora/Waveform";
+import { QuestHUD } from "@/components/Revora/QuestHUD";
 import { Button } from "@/components/ui/button";
 import { useLiveKitSession } from "@/hooks/useLiveKitSession";
 
@@ -163,6 +164,42 @@ function Index() {
   const [memoryConsent, setMemoryConsent] = useState(false);
   const [activeCategory, setActiveCategory] = useState<SubjectCategory>("All");
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  
+  // Auto-detect Quest Mode from transcript
+  const [isQuestMode, setIsQuestMode] = useState(false);
+
+  useEffect(() => {
+    // Determine if we're in quest mode by looking for recent commands
+    // Simple heuristic: if the user says "start a quest" recently, we're in quest mode.
+    // We exit quest mode if they say "end the quest" or if the session ends.
+    if (ended) {
+      setIsQuestMode(false);
+      return;
+    }
+    
+    // Check the last 10 messages for a quest trigger
+    const recentTurns = turns.slice(-10);
+    let questTriggered = false;
+    let questEnded = false;
+    
+    for (const t of recentTurns) {
+      const text = t.text.toLowerCase();
+      if (t.role === "user" && text.includes("start a quest")) {
+        questTriggered = true;
+        questEnded = false; // Reset if they start another one
+      }
+      if (t.role === "user" && (text.includes("end the quest") || text.includes("stop the quest"))) {
+        questEnded = true;
+        questTriggered = false;
+      }
+    }
+    
+    if (questTriggered && !questEnded) {
+      setIsQuestMode(true);
+    } else if (questEnded) {
+      setIsQuestMode(false);
+    }
+  }, [turns, ended]);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -213,7 +250,7 @@ function Index() {
     <>
       <AnimatedBackground />
 
-      <div className="relative flex min-h-dvh flex-col overflow-x-hidden">
+      <div className={`relative flex min-h-dvh flex-col overflow-x-hidden transition-colors duration-1000 ${isQuestMode ? 'bg-black/90 quest-mode-active' : ''}`}>
         {/* Navigation Header */}
         <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-5">
           <a href="/" className="group flex items-center gap-3">
@@ -282,8 +319,11 @@ function Index() {
 
         {/* Main Content Workspace */}
         <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 pt-2 pb-44 sm:pb-48">
+          {/* Quest HUD */}
+          <QuestHUD active={isQuestMode} />
+
           {/* Hero Banner (Shown when conversation is idle) */}
-          {!hasTurns && (
+          {!hasTurns && !isQuestMode && (
             <section className="animate-rise flex w-full flex-col items-center text-center">
               <div className="glass inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium text-muted-foreground">
                 <span className="h-2 w-2 rounded-full bg-brand-purple animate-pulse" />
@@ -314,13 +354,14 @@ function Index() {
           )}
 
           {/* Central Voice Stage */}
-          <section className="flex w-full flex-col items-center py-6">
+          <section className={`flex w-full flex-col items-center py-6 transition-all duration-700 ${isQuestMode ? 'scale-110 quest-orb-container' : ''}`}>
             <VoiceOrb level={level} phase={phase} onClick={toggle} />
 
             {/* Dynamic Status Title */}
             <div className="mt-6 flex flex-col items-center text-center">
               <span
                 className={`glass-card inline-flex items-center gap-2.5 rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-300 ${
+                  isQuestMode ? "text-orange-400 border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.4)]" :
                   phase === "speaking"
                     ? "text-brand-purple shadow-[var(--glow-brand)] border-brand-purple/30"
                     : phase === "listening" || phase === "user"
@@ -328,7 +369,9 @@ function Index() {
                       : "text-foreground"
                 }`}
               >
-                {phase === "listening" || phase === "user" ? (
+                {isQuestMode ? (
+                   <Flame className="h-4 w-4 animate-pulse text-orange-500" />
+                ) : phase === "listening" || phase === "user" ? (
                   <Mic className="h-4 w-4 animate-pulse text-brand-cyan" />
                 ) : phase === "speaking" ? (
                   <Volume2 className="h-4 w-4 animate-bounce text-brand-purple" />
@@ -337,7 +380,7 @@ function Index() {
                 ) : (
                   <Sparkles className="h-4 w-4 text-brand-cyan" />
                 )}
-                {copy.title}
+                {isQuestMode ? "Boss Battle Engaged" : copy.title}
               </span>
             </div>
 
@@ -471,7 +514,7 @@ function Index() {
           )}
 
           {/* Interactive Subject Filters & Suggested Prompt Cards */}
-          {!hasTurns && (
+          {!hasTurns && !isQuestMode && (
             <section className="animate-rise mt-6 w-full">
               {/* Category Filter Pills */}
               <div className="mb-4 flex items-center justify-between gap-2 border-b border-white/10 pb-3">
@@ -544,22 +587,26 @@ function Index() {
 
           {/* Live Transcript Panel */}
           {hasTurns && showTranscript && (
-            <section className="animate-rise glass-strong mt-6 w-full rounded-3xl p-5 shadow-2xl">
-              <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3">
+            <section className={`animate-rise mt-6 w-full rounded-3xl p-5 shadow-2xl transition-all duration-500 ${isQuestMode ? 'bg-zinc-950/80 border-2 border-red-900/50 backdrop-blur-xl shadow-[0_0_30px_rgba(220,38,38,0.15)] quest-combat-log' : 'glass-strong'}`}>
+              <div className={`flex items-center justify-between gap-3 border-b pb-3 ${isQuestMode ? 'border-red-900/50' : 'border-white/10'}`}>
                 <div className="flex items-center gap-2">
-                  <MessageSquareText className="h-4 w-4 text-brand-purple" />
-                  <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                    Live Transcript
+                  {isQuestMode ? (
+                     <Swords className="h-4 w-4 text-red-500" />
+                  ) : (
+                     <MessageSquareText className="h-4 w-4 text-brand-purple" />
+                  )}
+                  <h3 className={`text-xs font-bold tracking-wider uppercase ${isQuestMode ? 'text-red-400' : 'text-muted-foreground'}`}>
+                    {isQuestMode ? 'Combat Log' : 'Live Transcript'}
                   </h3>
                 </div>
-                <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-foreground">
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-foreground ${isQuestMode ? 'bg-red-950/50 text-red-400 border border-red-500/20' : 'bg-white/10'}`}>
                   {turns.length} messages
                 </span>
               </div>
 
               <div
                 ref={scrollRef}
-                className="mt-4 max-h-[44vh] space-y-3.5 overflow-y-auto pr-1.5 [scrollbar-width:thin]"
+                className={`mt-4 max-h-[44vh] space-y-3.5 overflow-y-auto pr-1.5 [scrollbar-width:thin] ${isQuestMode ? 'font-mono' : ''}`}
               >
                 {turns.map((t) => (
                   <div
@@ -567,7 +614,7 @@ function Index() {
                     className={`flex items-start gap-2.5 ${t.role === "agent" ? "justify-start" : "justify-end"}`}
                   >
                     {t.role === "agent" && (
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-gradient-brand text-primary-foreground text-xs font-bold shadow-sm mt-0.5">
+                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-xl text-primary-foreground text-xs font-bold shadow-sm mt-0.5 ${isQuestMode ? 'bg-gradient-to-br from-red-600 to-orange-600 border border-red-400' : 'bg-gradient-brand'}`}>
                         R
                       </span>
                     )}
@@ -575,8 +622,8 @@ function Index() {
                     <div
                       className={`animate-rise max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed ${
                         t.role === "agent"
-                          ? "glass-card rounded-tl-sm text-foreground"
-                          : "rounded-2xl rounded-tr-sm bg-gradient-brand text-primary-foreground shadow-[var(--glow-brand)]"
+                          ? (isQuestMode ? "bg-zinc-900 border border-red-900/50 text-red-50 rounded-tl-sm shadow-[0_0_10px_rgba(220,38,38,0.1)]" : "glass-card rounded-tl-sm text-foreground")
+                          : (isQuestMode ? "rounded-2xl rounded-tr-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)] border border-blue-400/30" : "rounded-2xl rounded-tr-sm bg-gradient-brand text-primary-foreground shadow-[var(--glow-brand)]")
                       }`}
                     >
                       <p>{t.text}</p>
@@ -605,7 +652,7 @@ function Index() {
           )}
 
           {/* Feature Highlights Grid */}
-          {!hasTurns && (
+          {!hasTurns && !isQuestMode && (
             <section className="animate-rise mt-10 grid w-full grid-cols-1 gap-3.5 sm:grid-cols-3">
               {[
                 {
