@@ -1,22 +1,22 @@
 {
   "user_id": "demo-student-001",
-  "xp": 370,
+  "xp": 375,
   "level": 2,
   "level_progress": {
-    "current": 120,
+    "current": 125,
     "needed": 250,
-    "percent": 48,
+    "percent": 50,
     "next_level_xp": 500
   },
   "streak": 1,
   "sessions": {
-    "total": 3,
+    "total": 4,
     "successful": 1,
     "failed": 0,
-    "in_progress": 2,
-    "success_rate": 33
+    "in_progress": 3,
+    "success_rate": 25
   },
-  "overall_mastery": 76,
+  "overall_mastery": 51,
   "mastery": [
     {
       "subject": "Physics",
@@ -35,6 +35,15 @@
       "correct": 1,
       "status": "in-progress",
       "last_practiced": "2026-08-13T06:08:24.115083+00:00"
+    },
+    {
+      "subject": "Physics",
+      "topic": "General Physics",
+      "mastery": 0,
+      "attempts": 1,
+      "correct": 0,
+      "status": "in-progress",
+      "last_practiced": "2026-08-13T08:29:04.147351+00:00"
     }
   ],
   "worlds": [
@@ -158,11 +167,22 @@
   "weaknesses": [],
   "current_quest": {
     "subject": "Physics",
-    "topic": "Newton's Laws",
-    "session_id": "QST-0D493D53",
+    "topic": "General Physics",
+    "session_id": "QST-288EEDCF",
     "status": "active"
   },
   "recent_sessions": [
+    {
+      "session_id": "QST-288EEDCF",
+      "subject": "Physics",
+      "topic": "General Physics",
+      "channel": "browser",
+      "outcome": "incomplete",
+      "xp_earned": 5,
+      "started_at": "2026-08-13T08:27:59.062888+00:00",
+      "ended_at": null,
+      "duration_seconds": null
+    },
     {
       "session_id": "QST-0D493D53",
       "subject": "Physics",
@@ -199,13 +219,13 @@
   ],
   "next_quest": {
     "subject": "Physics",
-    "topic": "general",
-    "title": "general \u2014 Level Up",
+    "topic": "General Physics",
+    "title": "General Physics \u2014 Level Up",
     "difficulty": "medium",
     "type": "topic",
     "boss": null,
-    "reason": "general is at 68% mastery \u2014 the lowest topic you have started.",
-    "prompt": "Start a Revora Voice Quest on general."
+    "reason": "General Physics is at 0% mastery \u2014 the lowest topic you have started.",
+    "prompt": "Start a Revora Voice Quest on General Physics."
   },
-  "updated_at": "2026-08-13T06:54:58.509480+00:00"
+  "updated_at": "2026-08-13T08:29:04.343604+00:00"
 }
