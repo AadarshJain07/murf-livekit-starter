@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
 function generateRefId(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";

@@ -1,22 +1,22 @@
 {
   "user_id": "demo-student-001",
-  "xp": 335,
+  "xp": 370,
   "level": 2,
   "level_progress": {
-    "current": 85,
+    "current": 120,
     "needed": 250,
-    "percent": 34,
+    "percent": 48,
     "next_level_xp": 500
   },
   "streak": 1,
   "sessions": {
-    "total": 1,
+    "total": 2,
     "successful": 1,
     "failed": 0,
-    "in_progress": 0,
-    "success_rate": 100
+    "in_progress": 1,
+    "success_rate": 50
   },
-  "overall_mastery": 85,
+  "overall_mastery": 76,
   "mastery": [
     {
       "subject": "Physics",
@@ -26,6 +26,15 @@
       "correct": 3,
       "status": "mastered",
       "last_practiced": "2026-08-13T05:26:47.804372+00:00"
+    },
+    {
+      "subject": "Physics",
+      "topic": "general",
+      "mastery": 68,
+      "attempts": 1,
+      "correct": 1,
+      "status": "in-progress",
+      "last_practiced": "2026-08-13T06:08:24.115083+00:00"
     }
   ],
   "worlds": [
@@ -149,11 +158,22 @@
   "weaknesses": [],
   "current_quest": {
     "subject": "Physics",
-    "topic": "Mechanics",
-    "session_id": "QST-D3D696DC",
-    "status": "success"
+    "topic": "general",
+    "session_id": "QST-7D4ECAE5",
+    "status": "active"
   },
   "recent_sessions": [
+    {
+      "session_id": "QST-7D4ECAE5",
+      "subject": "Physics",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "incomplete",
+      "xp_earned": 35,
+      "started_at": "2026-08-13T06:08:01.851385+00:00",
+      "ended_at": null,
+      "duration_seconds": null
+    },
     {
       "session_id": "QST-D3D696DC",
       "subject": "Physics",
@@ -168,13 +188,13 @@
   ],
   "next_quest": {
     "subject": "Physics",
-    "topic": "Kinematics",
-    "title": "Kinematics \u2014 First Quest",
-    "difficulty": "easy",
+    "topic": "general",
+    "title": "general \u2014 Level Up",
+    "difficulty": "medium",
     "type": "topic",
     "boss": null,
-    "reason": "You haven't started any quest yet. Kinematics unlocks the Physics World.",
-    "prompt": "Start my first Revora Voice Quest on Kinematics."
+    "reason": "general is at 68% mastery \u2014 the lowest topic you have started.",
+    "prompt": "Start a Revora Voice Quest on general."
   },
-  "updated_at": "2026-08-13T05:26:53.578827+00:00"
+  "updated_at": "2026-08-13T06:08:24.360553+00:00"
 }
