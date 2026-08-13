@@ -1,22 +1,22 @@
 {
   "user_id": "demo-student-001",
-  "xp": 375,
-  "level": 2,
+  "xp": 840,
+  "level": 4,
   "level_progress": {
-    "current": 125,
+    "current": 90,
     "needed": 250,
-    "percent": 50,
-    "next_level_xp": 500
+    "percent": 36,
+    "next_level_xp": 1000
   },
   "streak": 1,
   "sessions": {
-    "total": 4,
-    "successful": 1,
+    "total": 9,
+    "successful": 6,
     "failed": 0,
     "in_progress": 3,
-    "success_rate": 25
+    "success_rate": 67
   },
-  "overall_mastery": 51,
+  "overall_mastery": 56,
   "mastery": [
     {
       "subject": "Physics",
@@ -26,6 +26,15 @@
       "correct": 3,
       "status": "mastered",
       "last_practiced": "2026-08-13T05:26:47.804372+00:00"
+    },
+    {
+      "subject": "Physics",
+      "topic": "Newton's Laws",
+      "mastery": 73,
+      "attempts": 6,
+      "correct": 4,
+      "status": "in-progress",
+      "last_practiced": "2026-08-13T12:10:37.468825+00:00"
     },
     {
       "subject": "Physics",
@@ -164,7 +173,17 @@
       "boss_unlocked": false
     }
   ],
-  "weaknesses": [],
+  "weaknesses": [
+    {
+      "subject": "Physics",
+      "topic": "Newton's Laws",
+      "concept": "Newton's Laws",
+      "misses": 2,
+      "attempts": 3,
+      "accuracy": 33,
+      "last_practiced": "2026-08-13T12:10:37.468825+00:00"
+    }
+  ],
   "current_quest": {
     "subject": "Physics",
     "topic": "General Physics",
@@ -172,6 +191,61 @@
     "status": "active"
   },
   "recent_sessions": [
+    {
+      "session_id": "QST-6E18CD4F",
+      "subject": "Physics",
+      "topic": "Newton's Laws",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 465,
+      "started_at": "2026-08-13T12:04:49.792705+00:00",
+      "ended_at": "2026-08-13T12:10:39.244824+00:00",
+      "duration_seconds": 349
+    },
+    {
+      "session_id": "CONV-F00C1E9D",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T12:03:41.037540+00:00",
+      "ended_at": "2026-08-13T12:11:49.633200+00:00",
+      "duration_seconds": 488
+    },
+    {
+      "session_id": "CONV-74F414C6",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T12:02:40.610398+00:00",
+      "ended_at": "2026-08-13T12:03:49.206704+00:00",
+      "duration_seconds": 68
+    },
+    {
+      "session_id": "CONV-AC376A6D",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T12:01:49.748065+00:00",
+      "ended_at": "2026-08-13T12:02:51.036601+00:00",
+      "duration_seconds": 61
+    },
+    {
+      "session_id": "CONV-8616E5AD",
+      "subject": "conversation",
+      "topic": "general",
+      "channel": "browser",
+      "outcome": "success",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T11:54:07.026521+00:00",
+      "ended_at": "2026-08-13T11:55:55.920158+00:00",
+      "duration_seconds": 108
+    },
     {
       "session_id": "QST-288EEDCF",
       "subject": "Physics",
@@ -204,28 +278,17 @@
       "started_at": "2026-08-13T06:08:01.851385+00:00",
       "ended_at": null,
       "duration_seconds": null
-    },
-    {
-      "session_id": "QST-D3D696DC",
-      "subject": "Physics",
-      "topic": "Mechanics",
-      "channel": "browser",
-      "outcome": "success",
-      "xp_earned": 335,
-      "started_at": "2026-08-13T05:22:30.309022+00:00",
-      "ended_at": "2026-08-13T05:26:52.431766+00:00",
-      "duration_seconds": 262
     }
   ],
   "next_quest": {
     "subject": "Physics",
-    "topic": "General Physics",
-    "title": "General Physics \u2014 Level Up",
+    "topic": "Newton's Laws",
+    "title": "Newton's Laws \u2014 Newton's Laws",
     "difficulty": "medium",
-    "type": "topic",
+    "type": "weakness",
     "boss": null,
-    "reason": "General Physics is at 0% mastery \u2014 the lowest topic you have started.",
-    "prompt": "Start a Revora Voice Quest on General Physics."
+    "reason": "You've missed Newton's Laws 2 times (33% accuracy). This quest targets exactly that.",
+    "prompt": "Start a Revora Voice Quest on Newton's Laws in Physics and target my weak concept: Newton's Laws."
   },
-  "updated_at": "2026-08-13T08:29:04.343604+00:00"
+  "updated_at": "2026-08-13T12:11:49.719495+00:00"
 }
