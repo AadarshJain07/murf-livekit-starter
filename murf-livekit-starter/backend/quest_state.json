@@ -10,11 +10,11 @@
   },
   "streak": 1,
   "sessions": {
-    "total": 2,
+    "total": 3,
     "successful": 1,
     "failed": 0,
-    "in_progress": 1,
-    "success_rate": 50
+    "in_progress": 2,
+    "success_rate": 33
   },
   "overall_mastery": 76,
   "mastery": [
@@ -158,11 +158,22 @@
   "weaknesses": [],
   "current_quest": {
     "subject": "Physics",
-    "topic": "general",
-    "session_id": "QST-7D4ECAE5",
+    "topic": "Newton's Laws",
+    "session_id": "QST-0D493D53",
     "status": "active"
   },
   "recent_sessions": [
+    {
+      "session_id": "QST-0D493D53",
+      "subject": "Physics",
+      "topic": "Newton's Laws",
+      "channel": "browser",
+      "outcome": "incomplete",
+      "xp_earned": 0,
+      "started_at": "2026-08-13T06:54:58.477427+00:00",
+      "ended_at": null,
+      "duration_seconds": null
+    },
     {
       "session_id": "QST-7D4ECAE5",
       "subject": "Physics",
@@ -196,5 +207,5 @@
     "reason": "general is at 68% mastery \u2014 the lowest topic you have started.",
     "prompt": "Start a Revora Voice Quest on general."
   },
-  "updated_at": "2026-08-13T06:08:24.360553+00:00"
+  "updated_at": "2026-08-13T06:54:58.509480+00:00"
 }

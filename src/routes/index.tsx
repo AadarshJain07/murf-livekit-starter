@@ -170,21 +170,21 @@ function Index() {
 
   useEffect(() => {
     // Determine if we're in quest mode by looking for recent commands
-    // Simple heuristic: if the user says "start a quest" recently, we're in quest mode.
+    // Simple heuristic: if the user says "start a quest" or variations like "start a phy quest" or "start a physics quest" recently, we're in quest mode.
     // We exit quest mode if they say "end the quest" or if the session ends.
     if (ended) {
       setIsQuestMode(false);
       return;
     }
-    
+
     // Check the last 10 messages for a quest trigger
     const recentTurns = turns.slice(-10);
     let questTriggered = false;
     let questEnded = false;
-    
+
     for (const t of recentTurns) {
       const text = t.text.toLowerCase();
-      if (t.role === "user" && text.includes("start a quest")) {
+      if (t.role === "user" && (text.includes("start a quest") || text.includes("start a phy quest") || text.includes("start a physics quest"))) {
         questTriggered = true;
         questEnded = false; // Reset if they start another one
       }
@@ -193,7 +193,7 @@ function Index() {
         questTriggered = false;
       }
     }
-    
+
     if (questTriggered && !questEnded) {
       setIsQuestMode(true);
     } else if (questEnded) {
