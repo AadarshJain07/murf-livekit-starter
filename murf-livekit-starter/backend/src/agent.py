@@ -629,7 +629,7 @@ class Assistant(Agent):
         """
 
         try:
-            from specialists import build_physics_specialist
+            from physics_specialist import build_physics_specialist
 
             specialist = build_physics_specialist(
                 origin=self,
@@ -683,7 +683,7 @@ class Assistant(Agent):
         """
 
         try:
-            from specialists import build_chemistry_specialist
+            from chemistry_specialist import build_chemistry_specialist
 
             specialist = build_chemistry_specialist(
                 origin=self,
