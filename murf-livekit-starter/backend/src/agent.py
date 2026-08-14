@@ -51,15 +51,24 @@ class Assistant(Agent):
         instructions: str = SYSTEM_PROMPT,
         ctx: JobContext | None = None,
         outbound: bool = False,
+        call_session_id: str = "",
     ) -> None:
         self.user_id = user_id
         # Only set for outbound phone calls; the browser session ignores these.
         self.ctx = ctx
         self.outbound = outbound
+        # The single analytics row for this live call (browser or SIP).
+        # Every quest tool must write to THIS session, never create a new one.
+        self.call_session_id = call_session_id
 
         super().__init__(
             instructions=instructions,
         )
+
+    def _session(self, session_id: str = "") -> str:
+        """Always resolve to this call's session row."""
+        return self.call_session_id or session_id
+
 
     @function_tool
     async def remember_student(
@@ -179,12 +188,18 @@ class Assistant(Agent):
         """
 
         try:
+            # Re-uses THIS call's session row (created when the call
+            # connected) instead of inserting a duplicate call record.
             session = start_session(
                 user_id=self.user_id,
                 subject=subject,
                 topic=topic,
-                channel="browser" if not self.outbound else "sip",
+                channel="sip" if self.outbound else "browser",
+                session_id=self.call_session_id,
             )
+            # Bind this call to the resolved row (covers console/dev runs
+            # where no call session was opened up-front).
+            self.call_session_id = session["session_id"]
 
             state = get_state(self.user_id)
 
@@ -228,7 +243,7 @@ class Assistant(Agent):
         try:
             result = record_attempt(
                 user_id=self.user_id,
-                session_id=session_id,
+                session_id=self._session(session_id),
                 subject=subject,
                 topic=topic,
                 concept=concept,
@@ -335,7 +350,7 @@ class Assistant(Agent):
         try:
             result = record_attempt(
                 user_id=self.user_id,
-                session_id=session_id,
+                session_id=self._session(session_id),
                 subject=subject,
                 topic=topic,
                 concept=concept,
@@ -387,7 +402,7 @@ class Assistant(Agent):
 
             result = end_session(
                 user_id=self.user_id,
-                session_id=session_id,
+                session_id=self._session(session_id),
                 outcome=outcome,
                 subject=subject,
                 topic=topic,
@@ -533,6 +548,64 @@ class Assistant(Agent):
         )
 
     @function_tool
+    async def handoff_to_maths_specialist(
+        self,
+        context: RunContext,
+        learner_request: str = "",
+        topic: str = "",
+        level: str = "Class 11",
+        context_notes: str = "",
+    ):
+        """
+        Hand the conversation over to Revora's Maths Specialist.
+
+        Use this tool ONLY when the learner needs focused Mathematics help
+        that is better handled by the Maths Specialist — for example solving
+        a quadratic equation, permutations and combinations, limits,
+        trigonometry practice, or any Class 11 maths practice request.
+
+        Do NOT use it for Physics, Chemistry, Biology, questions about how
+        Revora works, the learner's history, greetings, or casual chat.
+
+        Before calling this tool, tell the learner you are connecting them
+        with the Maths Specialist. Pass the learner's actual request in
+        `learner_request`, the maths topic in `topic`, and only safe study
+        context in `context_notes` — never passwords, OTPs, PINs, account
+        numbers, phone numbers or a full transcript.
+        """
+
+        try:
+            from maths_specialist import build_maths_specialist
+
+            specialist = build_maths_specialist(
+                origin=self,
+                learner_request=learner_request,
+                topic=topic,
+                level=level,
+                context_notes=context_notes,
+            )
+        except Exception as error:  # noqa: BLE001 - never drop the call
+            logger.error("Maths Specialist handoff failed: %s", error)
+            return (
+                "The Maths Specialist could not be started, so no handoff "
+                "happened. Tell the learner briefly that the specialist is "
+                "unavailable right now and keep helping them with maths "
+                "yourself."
+            )
+
+        logger.info(
+            "Handing off to Maths Specialist (topic=%s)", topic or "unspecified"
+        )
+
+        return (
+            specialist,
+            "You are now Revora's Maths Specialist. Introduce yourself in one "
+            "short sentence and continue directly from the learner's request "
+            "without asking them to repeat it.",
+        )
+
+    @function_tool
+
     async def end_call(
         self,
         context: RunContext,
@@ -634,7 +707,21 @@ async def run_outbound_call(ctx: JobContext, job: OutboundJob) -> None:
         )
         return
 
+    # SIP calls use the SAME analytics source as browser calls: one session row
+    # per connected call, opened here and closed on disconnect.
+    call_session_id = log_conversation_start(user_id=job.user_id, channel="sip")
+    assistant.call_session_id = call_session_id
+
+    @ctx.room.on("disconnected")
+    def _on_outbound_disconnected(*_args):
+        log_conversation_end(
+            user_id=job.user_id,
+            session_id=call_session_id,
+            outcome="failed",
+        )
+
     await session.start(agent=assistant, room=ctx.room)
+
 
     # Proactive study reminder: say who is calling, why, and how to stop.
     await session.generate_reply(
@@ -661,7 +748,12 @@ async def run_browser_session(ctx: JobContext) -> None:
 
     session = build_session(ctx)
 
-    assistant = Assistant(user_id)
+    # Track this call in the analytics dashboard.
+    # Exactly ONE session row per call is opened here, before the agent starts,
+    # so quest tools re-use it instead of inserting a second record.
+    conv_session_id = log_conversation_start(user_id=user_id, channel="browser")
+
+    assistant = Assistant(user_id, call_session_id=conv_session_id)
 
     await session.start(
         agent=assistant,
@@ -680,10 +772,6 @@ async def run_browser_session(ctx: JobContext) -> None:
 
     await ctx.connect()
 
-    # Track this call in the analytics dashboard.
-    # We open a CONV- session row immediately so the "total calls" counter
-    # increments even if the student hangs up without completing a quest.
-    conv_session_id = log_conversation_start(user_id=user_id, channel="browser")
 
     @ctx.room.on("disconnected")
     def _on_disconnected(*_args):
@@ -691,7 +779,9 @@ async def run_browser_session(ctx: JobContext) -> None:
         log_conversation_end(
             user_id=user_id,
             session_id=conv_session_id,
-            outcome="success",
+            # Success is only recorded by complete_quest(); a call that ends
+            # without meeting the success condition counts as failed.
+            outcome="failed",
         )
 
     # Read memory directly from the database.

@@ -1,8 +1,8 @@
-"""Revora Voice Quest — gamified learning progression store (Day 8).
+"""Revora Voice Quest — gamified learning progression store (Supabase PostgreSQL).
 
-Reuses the existing Revora.db SQLite database (same file as memory.py and
-escalations.py) and mirrors an aggregated read-model to quest_state.json so the
-web dashboard can render real analytics without touching SQLite.
+All state is persisted directly to Supabase tables:
+- `quest_sessions`
+- `quest_attempts`
 
 Nothing here stores private data: only learning topics, concepts, difficulty
 and correctness. Free-text is sanitized the same way escalations are.
@@ -10,17 +10,12 @@ and correctness. Free-text is sanitized the same way escalations are.
 
 from __future__ import annotations
 
-import json
 import re
-import sqlite3
 import uuid
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import datetime, timezone
 from typing import Optional
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "Revora.db"
-JSON_PATH = BASE_DIR / "quest_state.json"
+from supabase_client import get_supabase
 
 DEFAULT_USER = "demo-student-001"
 
@@ -86,52 +81,9 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
 def init_quest() -> None:
-    conn = _connect()
-
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS quest_sessions (
-            session_id TEXT PRIMARY KEY,
-            user_id TEXT,
-            subject TEXT,
-            topic TEXT,
-            channel TEXT,
-            outcome TEXT,
-            xp_earned INTEGER DEFAULT 0,
-            started_at TEXT,
-            ended_at TEXT
-        )
-        """
-    )
-
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS quest_attempts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT,
-            session_id TEXT,
-            subject TEXT,
-            topic TEXT,
-            concept TEXT,
-            difficulty TEXT,
-            correct INTEGER,
-            attempts INTEGER DEFAULT 1,
-            kind TEXT DEFAULT 'question',
-            xp_earned INTEGER DEFAULT 0,
-            created_at TEXT
-        )
-        """
-    )
-
-    conn.commit()
-    conn.close()
+    """Compatibility helper. Supabase migrations manage schemas."""
+    pass
 
 
 # ---------------------------------------------------------------------------
@@ -139,52 +91,72 @@ def init_quest() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _latest_open_session(user_id: str = DEFAULT_USER) -> Optional[str]:
+    """Find the most recent unfinished session ID for this user in Supabase."""
+    supabase = get_supabase()
+    response = (
+        supabase.table("quest_sessions")
+        .select("session_id")
+        .eq("user_id", user_id)
+        .is_("ended_at", "null")
+        .order("started_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if response.data:
+        return response.data[0]["session_id"]
+    return None
+
+
 def start_session(
     user_id: str = DEFAULT_USER,
     subject: str = "",
     topic: str = "",
     channel: str = "browser",
+    session_id: str = "",
 ) -> dict:
-    """Open a quest session. Outcome starts as 'incomplete'."""
+    """Open (or re-use) the call session for this user.
 
-    init_quest()
+    Analytics represent CALLS, not questions. One live call = one row. The call
+    session row is created once when the call connects
+    (``log_conversation_start``); starting a quest inside that same call must
+    therefore UPDATE that row instead of inserting a second one.
+    """
+    supabase = get_supabase()
+    existing = session_id or _latest_open_session(user_id)
 
-    session_id = "QST-" + uuid.uuid4().hex[:8].upper()
+    if existing:
+        updates: dict[str, str] = {}
+        if subject:
+            updates["subject"] = _sanitize(subject, 40)
+        if topic:
+            updates["topic"] = _sanitize(topic, 80)
+        if channel:
+            updates["channel"] = _sanitize(channel, 20)
 
-    conn = _connect()
-    conn.execute(
-        """
-        INSERT INTO quest_sessions (
-            session_id, user_id, subject, topic, channel,
-            outcome, xp_earned, started_at, ended_at
-        ) VALUES (?, ?, ?, ?, ?, 'incomplete', 0, ?, NULL)
-        """,
-        (
-            session_id,
-            user_id,
-            _sanitize(subject, 40),
-            _sanitize(topic, 80),
-            _sanitize(channel, 20) or "browser",
-            _now(),
-        ),
-    )
-    conn.commit()
-    conn.close()
+        if updates:
+            supabase.table("quest_sessions").update(updates).eq(
+                "session_id", existing
+            ).execute()
 
-    _write_json_mirror(user_id)
-    return {"session_id": session_id, "subject": subject, "topic": topic}
+        return {"session_id": existing, "subject": subject, "topic": topic}
 
+    new_session_id = "QST-" + uuid.uuid4().hex[:8].upper()
 
-def _latest_open_session(conn: sqlite3.Connection, user_id: str) -> Optional[str]:
-    row = conn.execute(
-        """
-        SELECT session_id FROM quest_sessions
-        WHERE user_id = ? AND ended_at IS NULL
-        ORDER BY started_at DESC LIMIT 1
-        """,
-        (user_id,),
-    ).fetchone()
-    return row["session_id"] if row else None
+    row = {
+        "session_id": new_session_id,
+        "user_id": user_id,
+        "subject": _sanitize(subject, 40),
+        "topic": _sanitize(topic, 80),
+        "channel": _sanitize(channel, 20) or "browser",
+        "outcome": "incomplete",
+        "xp_earned": 0,
+        "started_at": _now(),
+        "ended_at": None,
+    }
+    supabase.table("quest_sessions").insert(row).execute()
+
+    return {"session_id": new_session_id, "subject": subject, "topic": topic}
 
 
 def record_attempt(
@@ -199,9 +171,6 @@ def record_attempt(
     kind: str = "question",
 ) -> dict:
     """Record one voice-combat answer and return XP / damage / next difficulty."""
-
-    init_quest()
-
     difficulty = difficulty.strip().lower()
     if difficulty not in DIFFICULTIES:
         difficulty = "medium"
@@ -216,42 +185,39 @@ def record_attempt(
         xp = XP_FOR_CORRECT[difficulty] if correct else 5
         damage = DAMAGE_FOR_CORRECT[difficulty] if correct else 0
 
-    conn = _connect()
+    supabase = get_supabase()
+    resolved_session = session_id or _latest_open_session(user_id) or ""
 
-    resolved_session = session_id or _latest_open_session(conn, user_id) or ""
-
-    conn.execute(
-        """
-        INSERT INTO quest_attempts (
-            user_id, session_id, subject, topic, concept,
-            difficulty, correct, attempts, kind, xp_earned, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            user_id,
-            resolved_session,
-            _sanitize(subject, 40),
-            _sanitize(topic, 80),
-            _sanitize(concept, 80),
-            difficulty,
-            1 if correct else 0,
-            max(1, int(attempts or 1)),
-            _sanitize(kind, 20) or "question",
-            xp,
-            _now(),
-        ),
-    )
+    attempt_row = {
+        "user_id": user_id,
+        "session_id": resolved_session or None,
+        "subject": _sanitize(subject, 40),
+        "topic": _sanitize(topic, 80),
+        "concept": _sanitize(concept, 80),
+        "difficulty": difficulty,
+        "correct": bool(correct),
+        "attempts": max(1, int(attempts or 1)),
+        "kind": _sanitize(kind, 20) or "question",
+        "xp_earned": xp,
+        "created_at": _now(),
+    }
+    supabase.table("quest_attempts").insert(attempt_row).execute()
 
     if resolved_session:
-        conn.execute(
-            "UPDATE quest_sessions SET xp_earned = xp_earned + ? WHERE session_id = ?",
-            (xp, resolved_session),
+        sess_res = (
+            supabase.table("quest_sessions")
+            .select("xp_earned")
+            .eq("session_id", resolved_session)
+            .limit(1)
+            .execute()
         )
+        if sess_res.data:
+            current_xp = int(sess_res.data[0].get("xp_earned") or 0)
+            supabase.table("quest_sessions").update(
+                {"xp_earned": current_xp + xp}
+            ).eq("session_id", resolved_session).execute()
 
-    conn.commit()
-    conn.close()
-
-    state = _write_json_mirror(user_id)
+    state = get_state(user_id)
 
     next_difficulty = _next_difficulty(difficulty, correct)
     topic_mastery = 0
@@ -286,41 +252,43 @@ def end_session(
     topic: str = "",
 ) -> dict:
     """Close a session as 'success' (objective completed) or 'failed'."""
+    outcome = (
+        "success"
+        if outcome.strip().lower() in ("success", "successful", "completed")
+        else "failed"
+    )
 
-    init_quest()
-
-    outcome = "success" if outcome.strip().lower() in ("success", "successful", "completed") else "failed"
-
-    conn = _connect()
-    resolved_session = session_id or _latest_open_session(conn, user_id)
+    supabase = get_supabase()
+    resolved_session = session_id or _latest_open_session(user_id)
 
     if not resolved_session:
-        conn.close()
         return {"ok": False, "reason": "no open session"}
 
     bonus = XP_QUEST_COMPLETE if outcome == "success" else 0
 
-    conn.execute(
-        """
-        UPDATE quest_sessions
-        SET outcome = ?, ended_at = ?, xp_earned = xp_earned + ?,
-            subject = COALESCE(NULLIF(?, ''), subject),
-            topic = COALESCE(NULLIF(?, ''), topic)
-        WHERE session_id = ?
-        """,
-        (
-            outcome,
-            _now(),
-            bonus,
-            _sanitize(subject, 40),
-            _sanitize(topic, 80),
-            resolved_session,
-        ),
+    sess_res = (
+        supabase.table("quest_sessions")
+        .select("xp_earned, subject, topic")
+        .eq("session_id", resolved_session)
+        .limit(1)
+        .execute()
     )
-    conn.commit()
-    conn.close()
+    current_xp = int(sess_res.data[0].get("xp_earned") or 0) if sess_res.data else 0
+    existing_subj = sess_res.data[0].get("subject") if sess_res.data else ""
+    existing_topic = sess_res.data[0].get("topic") if sess_res.data else ""
 
-    state = _write_json_mirror(user_id)
+    updates = {
+        "outcome": outcome,
+        "ended_at": _now(),
+        "xp_earned": current_xp + bonus,
+        "subject": _sanitize(subject, 40) or existing_subj or "",
+        "topic": _sanitize(topic, 80) or existing_topic or "",
+    }
+    supabase.table("quest_sessions").update(updates).eq(
+        "session_id", resolved_session
+    ).execute()
+
+    state = get_state(user_id)
 
     return {
         "ok": True,
@@ -352,13 +320,19 @@ def _streak(dates: list[str]) -> int:
     if not days:
         return 0
     today = datetime.now(timezone.utc).date()
-    first = datetime.fromisoformat(days[0]).date()
+    try:
+        first = datetime.fromisoformat(days[0]).date()
+    except ValueError:
+        return 0
     if (today - first).days > 1:
         return 0
     streak = 1
     cursor = first
     for value in days[1:]:
-        day = datetime.fromisoformat(value).date()
+        try:
+            day = datetime.fromisoformat(value).date()
+        except ValueError:
+            continue
         if (cursor - day).days == 1:
             streak += 1
             cursor = day
@@ -370,46 +344,39 @@ def _streak(dates: list[str]) -> int:
 
 
 def get_state(user_id: str = DEFAULT_USER) -> dict:
-    init_quest()
+    """Read aggregated quest state live from Supabase."""
+    supabase = get_supabase()
 
-    conn = _connect()
+    sessions_res = (
+        supabase.table("quest_sessions")
+        .select(
+            "session_id, subject, topic, channel, outcome, xp_earned, started_at, ended_at"
+        )
+        .eq("user_id", user_id)
+        .order("started_at", desc=True)
+        .execute()
+    )
+    sessions = sessions_res.data or []
 
-    sessions = [
-        dict(row)
-        for row in conn.execute(
-            """
-            SELECT session_id, subject, topic, channel, outcome,
-                   xp_earned, started_at, ended_at
-            FROM quest_sessions WHERE user_id = ?
-            ORDER BY started_at DESC
-            """,
-            (user_id,),
-        ).fetchall()
-    ]
+    attempts_res = (
+        supabase.table("quest_attempts")
+        .select(
+            "subject, topic, concept, difficulty, correct, kind, xp_earned, created_at"
+        )
+        .eq("user_id", user_id)
+        .order("created_at", desc=False)
+        .execute()
+    )
+    attempts = attempts_res.data or []
 
-    attempts = [
-        dict(row)
-        for row in conn.execute(
-            """
-            SELECT subject, topic, concept, difficulty, correct, kind,
-                   xp_earned, created_at
-            FROM quest_attempts WHERE user_id = ?
-            ORDER BY created_at ASC
-            """,
-            (user_id,),
-        ).fetchall()
-    ]
-
-    conn.close()
-
-    xp = sum(int(s["xp_earned"] or 0) for s in sessions)
+    xp = sum(int(s.get("xp_earned") or 0) for s in sessions)
     level = xp // XP_PER_LEVEL + 1
     level_floor = (level - 1) * XP_PER_LEVEL
     level_ceiling = level * XP_PER_LEVEL
 
     total = len(sessions)
-    successful = sum(1 for s in sessions if s["outcome"] == "success")
-    failed = sum(1 for s in sessions if s["outcome"] == "failed")
+    successful = sum(1 for s in sessions if s.get("outcome") == "success")
+    failed = sum(1 for s in sessions if s.get("outcome") == "failed")
     success_rate = round(successful / total * 100) if total else 0
 
     # --- per-topic mastery -------------------------------------------------
@@ -417,32 +384,32 @@ def get_state(user_id: str = DEFAULT_USER) -> dict:
     concept_stats: dict[tuple[str, str, str], dict] = {}
 
     for a in attempts:
-        subject = a["subject"] or ""
-        topic = a["topic"] or ""
+        subject = a.get("subject") or ""
+        topic = a.get("topic") or ""
         if topic:
             key = (subject, topic)
             entry = topic_stats.setdefault(
                 key,
-                {"correct": 0, "total": 0, "hard_correct": 0, "last": a["created_at"]},
+                {"correct": 0, "total": 0, "hard_correct": 0, "last": a.get("created_at")},
             )
             entry["total"] += 1
-            entry["correct"] += int(a["correct"] or 0)
-            if a["correct"] and a["difficulty"] == "hard":
+            entry["correct"] += 1 if a.get("correct") else 0
+            if a.get("correct") and a.get("difficulty") == "hard":
                 entry["hard_correct"] += 1
-            entry["last"] = a["created_at"]
+            entry["last"] = a.get("created_at")
 
-        concept = a["concept"] or ""
+        concept = a.get("concept") or ""
         if concept:
             ckey = (subject, topic, concept)
             centry = concept_stats.setdefault(
-                ckey, {"correct": 0, "total": 0, "misses": 0, "last": a["created_at"]}
+                ckey, {"correct": 0, "total": 0, "misses": 0, "last": a.get("created_at")}
             )
             centry["total"] += 1
-            if a["correct"]:
+            if a.get("correct"):
                 centry["correct"] += 1
             else:
                 centry["misses"] += 1
-            centry["last"] = a["created_at"]
+            centry["last"] = a.get("created_at")
 
     mastery: list[dict] = []
     for (subject, topic), entry in topic_stats.items():
@@ -517,23 +484,23 @@ def get_state(user_id: str = DEFAULT_USER) -> dict:
         round(sum(m["mastery"] for m in mastery) / len(mastery)) if mastery else 0
     )
 
-    open_session = next((s for s in sessions if not s["ended_at"]), None)
+    open_session = next((s for s in sessions if not s.get("ended_at")), None)
     last_session = sessions[0] if sessions else None
 
     current_quest = None
     if open_session:
         current_quest = {
-            "subject": open_session["subject"] or "Physics",
-            "topic": open_session["topic"] or "Kinematics",
-            "session_id": open_session["session_id"],
+            "subject": open_session.get("subject") or "Physics",
+            "topic": open_session.get("topic") or "Kinematics",
+            "session_id": open_session.get("session_id"),
             "status": "active",
         }
     elif last_session:
         current_quest = {
-            "subject": last_session["subject"] or "Physics",
-            "topic": last_session["topic"] or "Kinematics",
-            "session_id": last_session["session_id"],
-            "status": last_session["outcome"],
+            "subject": last_session.get("subject") or "Physics",
+            "topic": last_session.get("topic") or "Kinematics",
+            "session_id": last_session.get("session_id"),
+            "status": last_session.get("outcome"),
         }
 
     state = {
@@ -546,7 +513,7 @@ def get_state(user_id: str = DEFAULT_USER) -> dict:
             "percent": round((xp - level_floor) / XP_PER_LEVEL * 100),
             "next_level_xp": level_ceiling,
         },
-        "streak": _streak([s["started_at"] for s in sessions]),
+        "streak": _streak([s.get("started_at") for s in sessions if s.get("started_at")]),
         "sessions": {
             "total": total,
             "successful": successful,
@@ -561,15 +528,15 @@ def get_state(user_id: str = DEFAULT_USER) -> dict:
         "current_quest": current_quest,
         "recent_sessions": [
             {
-                "session_id": s["session_id"],
-                "subject": s["subject"] or "General",
-                "topic": s["topic"] or "Open doubt session",
-                "channel": s["channel"] or "browser",
-                "outcome": s["outcome"],
-                "xp_earned": int(s["xp_earned"] or 0),
-                "started_at": s["started_at"],
-                "ended_at": s["ended_at"],
-                "duration_seconds": _duration(s["started_at"], s["ended_at"]),
+                "session_id": s.get("session_id"),
+                "subject": s.get("subject") or "General",
+                "topic": s.get("topic") or "Open doubt session",
+                "channel": s.get("channel") or "browser",
+                "outcome": s.get("outcome"),
+                "xp_earned": int(s.get("xp_earned") or 0),
+                "started_at": s.get("started_at"),
+                "ended_at": s.get("ended_at"),
+                "duration_seconds": _duration(s.get("started_at"), s.get("ended_at")),
             }
             for s in sessions[:8]
         ],
@@ -596,7 +563,6 @@ def recommend_next_quest(
     worlds: list[dict],
 ) -> dict:
     """Pick the next challenge from real performance data."""
-
     if weaknesses:
         weak = weaknesses[0]
         return {
@@ -673,7 +639,6 @@ def recommend_next_quest(
 
 def build_boss_plan(user_id: str = DEFAULT_USER, subject: str = "Physics") -> dict:
     """Boss questions must come from the learner's real history, not randomness."""
-
     state = get_state(user_id)
 
     subject_l = subject.strip().lower()
@@ -697,15 +662,6 @@ def build_boss_plan(user_id: str = DEFAULT_USER, subject: str = "Physics") -> di
     }
 
 
-def _write_json_mirror(user_id: str = DEFAULT_USER) -> dict:
-    state = get_state(user_id)
-    try:
-        JSON_PATH.write_text(json.dumps(state, indent=2), encoding="utf-8")
-    except OSError as error:  # never break a live voice session over a file write
-        print(f"[QUEST] Could not write {JSON_PATH}: {error}")
-    return state
-
-
 def log_event(event: str, **fields) -> None:
     detail = " ".join(f"{k}={v}" for k, v in fields.items())
     print(f"[QUEST] {event} {detail}".rstrip())
@@ -716,31 +672,31 @@ def log_event(event: str, **fields) -> None:
 # ---------------------------------------------------------------------------
 
 
-def log_conversation_start(user_id: str = DEFAULT_USER, channel: str = "browser") -> str:
+def log_conversation_start(
+    user_id: str = DEFAULT_USER, channel: str = "browser"
+) -> str:
     """Create a session row for a normal voice conversation (no quest).
 
     Returns the generated session ID so the caller can close it later.
     The row uses the same ``quest_sessions`` table; a ``CONV-`` prefix
     distinguishes it from quest rows (``QST-``).
     """
-    init_quest()
-
     session_id = "CONV-" + uuid.uuid4().hex[:8].upper()
 
-    conn = _connect()
-    conn.execute(
-        """
-        INSERT INTO quest_sessions (
-            session_id, user_id, subject, topic, channel,
-            outcome, xp_earned, started_at, ended_at
-        ) VALUES (?, ?, 'conversation', 'general', ?, 'incomplete', 0, ?, NULL)
-        """,
-        (session_id, user_id, _sanitize(channel, 20) or "browser", _now()),
-    )
-    conn.commit()
-    conn.close()
+    supabase = get_supabase()
+    row = {
+        "session_id": session_id,
+        "user_id": user_id,
+        "subject": "conversation",
+        "topic": "general",
+        "channel": _sanitize(channel, 20) or "browser",
+        "outcome": "incomplete",
+        "xp_earned": 0,
+        "started_at": _now(),
+        "ended_at": None,
+    }
+    supabase.table("quest_sessions").insert(row).execute()
 
-    _write_json_mirror(user_id)
     log_event("conversation_start", session_id=session_id, channel=channel)
     return session_id
 
@@ -748,12 +704,14 @@ def log_conversation_start(user_id: str = DEFAULT_USER, channel: str = "browser"
 def log_conversation_end(
     user_id: str = DEFAULT_USER,
     session_id: str = "",
-    outcome: str = "success",
+    outcome: str = "failed",
 ) -> None:
-    """Close the conversation session opened by ``log_conversation_start``.
+    """Close the call session opened by ``log_conversation_start``.
 
-    ``outcome`` should be ``"success"`` for a clean disconnect or ``"failed"``
-    if the session was forcibly terminated / errored.
+    Only a met success condition (``complete_quest`` -> ``end_session``) marks a
+    call ``success``; that call already sets ``ended_at``, so this UPDATE is a
+    no-op for it. Any call that ends without meeting the success condition is
+    therefore recorded as ``failed``.
     """
     if not session_id:
         log_event("conversation_end_skipped", reason="no session_id")
@@ -765,22 +723,18 @@ def log_conversation_end(
         else "failed"
     )
 
-    init_quest()
-    conn = _connect()
-    conn.execute(
-        """
-        UPDATE quest_sessions
-        SET outcome = ?, ended_at = ?
-        WHERE session_id = ? AND ended_at IS NULL
-        """,
-        (safe_outcome, _now(), session_id),
-    )
-    conn.commit()
-    conn.close()
+    supabase = get_supabase()
+    supabase.table("quest_sessions").update(
+        {
+            "outcome": safe_outcome,
+            "ended_at": _now(),
+        }
+    ).eq("session_id", session_id).is_("ended_at", "null").execute()
 
-    _write_json_mirror(user_id)
     log_event("conversation_end", session_id=session_id, outcome=safe_outcome)
 
 
 if __name__ == "__main__":
-    print(json.dumps(_write_json_mirror(), indent=2))
+    import json
+
+    print(json.dumps(get_state(), indent=2))

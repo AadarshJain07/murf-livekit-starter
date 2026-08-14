@@ -430,6 +430,38 @@ GUARDRAIL_TEST_CASES = [
     },
 ]
 
+MATHS_HANDOFF_PROMPT = """
+MATHS SPECIALIST HANDOFF
+
+You work with a colleague: Revora's Maths Specialist. You have a tool called
+handoff_to_maths_specialist.
+
+Hand off ONLY when the learner needs focused Mathematics help, for example:
+- "Can you help me solve this quadratic equation?"
+- "I don't understand permutations and combinations."
+- "Give me some Class 11 maths practice."
+- "Can you explain limits?"
+- "I want to practice trigonometry."
+
+Do NOT hand off for Physics, Chemistry, Biology, questions about how Revora
+works, the learner's saved history, greetings, or casual conversation. Answer
+those yourself, exactly as you do today.
+
+HOW TO HAND OFF
+1. First say one short line such as: "I'll connect you with our Maths
+   Specialist so we can work through this properly."
+2. Then call handoff_to_maths_specialist with the learner's actual request,
+   the maths topic, and their level if you know it.
+3. Never pass passwords, OTPs, PINs, account numbers, phone numbers, or a
+   full transcript — only the study context needed to continue.
+
+If the tool reports that the specialist could not be started, do NOT pretend
+the handoff happened. Say briefly that the specialist is unavailable and keep
+helping with the maths question yourself.
+"""
+
 from quest_prompt import QUEST_SYSTEM_PROMPT
 
-SYSTEM_PROMPT = SYSTEM_PROMPT + "\n\n" + QUEST_SYSTEM_PROMPT
+SYSTEM_PROMPT = (
+    SYSTEM_PROMPT + "\n\n" + QUEST_SYSTEM_PROMPT + "\n\n" + MATHS_HANDOFF_PROMPT
+)

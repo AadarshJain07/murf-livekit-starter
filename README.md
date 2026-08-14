@@ -1,312 +1,173 @@
-# Revora AI
-
-A voice-first AI tutor built for Indian students. Explain concepts, revise lessons, and take quizzes — all through natural voice conversations in English, Hindi, or Hinglish.
-
-## Features
-
-* **Voice-first tutoring** — Talk naturally and listen to answers powered by Murf Falcon + LiveKit.
-* **Multilingual support** — English, Hindi, and Hinglish.
-* **Concept explanations** — Ask any topic and get clear, student-friendly answers.
-* **Quiz mode** — Interactive spoken quizzes with encouraging feedback.
-* **Revision help** — Quickly recap lessons before exams.
-* **Learning exercises** — Fetch subject-specific practice questions through a dedicated learning tool.
-* **Student memory** — Remember learning-related information with explicit student consent.
-* **Safety guardrails** — No exam cheating, no full homework completion, and no shaming students for wrong answers.
+# Revora Cloud Sync
 
-## Tech Stack
+use this file https://drive.google.com/file/d/1dDQKuzI2YMhLJAODBuTeJ_GE_VYdIrGb/view?usp=sharing and Update the existing Revora project to completely remove the current local SQLite/database-based storage and migrate the backend to Supabase PostgreSQL.
 
-* **Frontend:** React, TypeScript, Tailwind CSS, LiveKit Client
-* **Backend:** Python, LiveKit Agents, Murf Falcon, Deepgram, Gemini
+Requirements
 
-## Project Structure
+Remove the dependency on local Revora.db, SQLite connections, and any local JSON/database mirrors used for persistent application data.
 
-```text
-.
-├── src/                          # Web application
-│   ├── routes/                   # Application routes
-│   ├── components/Revora/     # Revora UI components
-│   ├── hooks/                    # LiveKit and voice hooks
-│   └── lib/                      # Utilities
-├── murf-livekit-starter/backend/ # Python voice agent
-│   └── src/
-│       ├── agent.py              # LiveKit agent entry
-│       ├── prompt.py             # System prompt, greeting, guardrails
-│       ├── memory.py             # Student memory
-│       └── ...
-└── RED_TEAM.md                   # Adversarial test prompts
-```
+Do not change the existing Revora functionality, UI, quest logic, XP system, mastery calculations, analytics, memory behavior, escalations, outbound calls, or Day 9 maths-specialist handoff unless required for the database migration.
 
-## Getting Started
+Preserve all existing function names and their behavior wherever possible so the rest of the codebase does not break.
 
-### Prerequisites
+Supabase setup
 
-* Python 3.10+
-* `uv`
-* LiveKit Cloud project
-* Murf API key
-* Deepgram API key
-* Gemini API key
+Use the existing Supabase project/database.
 
-### How the pieces connect
+Create/use appropriate Supabase tables for all data currently stored locally, including:
 
-```text
-Web App
-   |
-   | joins LiveKit room
-   v
-LiveKit Cloud
-   |
-   v
-Python Voice Agent
-   |
-   +---- Deepgram STT
-   |
-   +---- Gemini LLM
-   |
-   +---- Murf Falcon TTS
-   |
-   +---- Learning & Memory Tools
-```
+Quest sessions
 
-The Python agent connects to LiveKit Cloud, so it can run from your laptop without port forwarding. The tutor responds while the backend agent process is running.
+Quest attempts
 
-## Backend Setup
+User memory
 
-Navigate to the backend:
+Escalations
 
-```bash
-cd murf-livekit-starter/backend
-```
+Any other persistent analytics/state currently stored in SQLite or local JSON
 
-Create your environment file:
+Use proper PostgreSQL types, primary keys, timestamps, indexes, and relationships where appropriate.
 
-```bash
-cp .env.local.example .env.local
-```
+Backend
 
-Add your required API keys and LiveKit configuration to `.env.local`.
+Replace SQLite operations such as:
 
-Install dependencies:
+sqlite3.connect(...)
 
-```bash
-uv sync
-```
 
-Download required files on the first run:
+with Supabase operations using the official Supabase Python client.
 
-```bash
-uv run python src/agent.py download-files
-```
+Create a clean reusable Supabase database module, for example:
 
-## Run the Agent
+backend/src/supabase_client.py
 
-Start the LiveKit agent:
 
-```bash
-uv run python src/agent.py dev
-```
+Load credentials only from environment variables:
 
-Keep this process running while using the web application.
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
 
-## Demo Runbook
 
-1. Start the Python agent.
+Never hardcode credentials.
 
-2. Open the Revora web application.
+Use the service-role key only on the backend. Never expose it to the frontend.
 
-3. Click **Start Conversation**.
+Migration
 
-4. Allow microphone access.
+Preserve the existing data model and behavior. Map existing operations such as:
 
-5. Ask Revora a question.
+start_session()
+record_attempt()
+end_session()
+get_state()
+build_boss_plan()
+save_user_memory()
+get_user_memory()
+create_escalation()
 
-6. Try a practice request such as:
 
-   > "Give me a Class 11 Physics practice question."
+to Supabase-backed implementations.
 
-7. The agent should automatically call the learning exercise tool and return a practice question.
+The dashboard must continue showing real data, not hardcoded values.
 
-## Day 5 — Learning Exercise Tool
+Environment
 
-Revora includes a `get_next_exercise` function tool for the Learning & Literacy track.
+Update .env.example with:
 
-The tool currently uses a **local hand-built dataset** containing practice exercises for:
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
 
-* Physics
-* Chemistry
-* Mathematics
-* Biology
 
-Example request:
+Do not commit real credentials.
 
-```text
-"Give me a Physics practice question."
-```
+Make the backend work both locally and on Railway.
 
-The agent decides when to call the tool based on the student's request and then presents the returned exercise naturally through voice.
+Railway compatibility
 
-### Data Source
+Update the API server so it listens on Railway's dynamically assigned PORT:
 
-**Source:** Local hand-built dataset.
+port = int(os.getenv("PORT", "8082"))
 
-**Status:** Local/static data, not a live external API.
 
-This approach is used for the Day 5 prototype so the agent can demonstrate reliable function calling and graceful handling of unsupported subjects without depending on an external service.
+and binds to:
 
-## Day 6 - Outbound Calls
+0.0.0.0
 
-### Outbound use case: Scheduled Daily Practice Call
 
-Revora AI calls the learner at the practice time they selected, explains why
-it is calling, offers an easy opt-out, and — if the learner agrees — asks one
-Class 11 practice question fetched through the existing `get_next_exercise`
-tool. Voice is generated in real time with **Murf Falcon TTS**, speech is
-transcribed with Deepgram, and reasoning runs on Gemini.
+Make sure CORS allows the existing hosted Revora frontend.
 
-### Why this matters for Learning & Literacy
+Cleanup
 
-Many Indian students never open a study app on a busy day. A short, spoken,
-one-question practice call removes every barrier: no app, no typing, no data
-plan — just a phone ringing at the time the learner chose. Daily spaced
-practice is one of the strongest drivers of retention, and voice works for
-learners with low reading confidence too.
+After the migration:
 
-### Call flow
+Remove unused sqlite3 imports.
 
-```text
-1. call initiated        -> agent asks LiveKit SIP to dial the learner
-2. call connected        -> learner picks up
-3. opening               -> "Hi, this is Revora AI, your learning assistant..."
-                            reason for calling + "say 'stop calls' to end"
-4. consent question      -> "Would you like today's quick practice question?"
-5a. opt-out              -> polite acknowledgement, call ends immediately
-5b. agreement            -> get_next_exercise(subject="Physics", level="Class 11")
-6. question spoken       -> Murf Falcon speaks it naturally (never raw tool output)
-7. learner answers       -> Deepgram transcribes, Gemini gives short feedback
-8. call completed        -> agent thanks the learner and hangs up
-```
+Remove local database initialization code.
 
-### SIP / telephony architecture
+Remove unnecessary Revora.db creation/access.
 
-```text
-Browser:   Frontend -> LiveKit -> Revora Agent            (Day 1-5, unchanged)
-Outbound:  Revora Agent -> LiveKit SIP -> SIP/Linphone endpoint -> phone
-```
+Remove obsolete quest_state.json persistence if Supabase now provides that state.
 
-The same agent process handles both. A LiveKit job that carries outbound
-metadata becomes a practice call; a job without metadata is the normal browser
-session.
+Remove any dead database code created only for SQLite.
 
-New/changed backend files:
+Do not create a second parallel database system.
 
-```text
-src/outbound.py          # SIP dialing, failure mapping, call-outcome logging
-src/outbound_prompt.py   # outbound opening, opt-out rules, practice flow
-src/make_call.py         # CLI to trigger an outbound call
-src/agent.py             # browser vs outbound branch + end_call tool
-```
+Important
 
-### Linphone setup (no PSTN / no Twilio needed)
+Before changing anything, inspect the entire existing codebase and identify every place that reads or writes the local database/files.
 
-1. Install [Linphone](https://www.linphone.org/) on your phone or desktop.
-2. Create a free SIP account (e.g. `sip.linphone.org`) and sign in.
-3. In LiveKit Cloud open **Telephony -> Trunks -> Create outbound trunk**,
-   point it at your SIP provider (`sip.linphone.org`) and set the trunk's
-   auth username/password to your SIP credentials.
-4. Copy the trunk ID (`ST_...`) into `SIP_OUTBOUND_TRUNK_ID`.
-5. Call your own Linphone address, e.g. `sip:yourname@sip.linphone.org`.
+Do not blindly rewrite files.
 
-With a PSTN-capable trunk the same command works with a real number
-(`+919876543210`).
+The final architecture should be:
 
-### Required environment variables
+Revora Frontend
+      ↓
+Railway Backend / API
+      ↓
+Supabase PostgreSQL
 
-`murf-livekit-starter/backend/.env.local` (template: `.env.local.example`):
 
-```bash
-LIVEKIT_URL=
-LIVEKIT_API_KEY=
-LIVEKIT_API_SECRET=
+Verify the migration by testing:
 
-MURF_API_KEY=
-DEEPGRAM_API_KEY=
-GOOGLE_API_KEY=
+Start a quest.
 
-SIP_OUTBOUND_TRUNK_ID=
-SIP_USERNAME=
-SIP_PASSWORD=
-AGENT_NAME=my-agent
-```
+Record a quest answer.
 
-No credentials are hard-coded anywhere in the source.
+Complete a quest.
 
-### Start the agent
+Read quest progress.
 
-```bash
-cd murf-livekit-starter/backend
-uv sync
-uv run python src/agent.py dev
-```
+Read/write user memory.
 
-### Trigger an outbound test call
+Create an escalation.
 
-In a second terminal:
+Verify analytics/dashboard values update.
 
-```bash
-cd murf-livekit-starter/backend
-uv run python src/make_call.py sip:yourname@sip.linphone.org
-# or a real number:
-uv run python src/make_call.py +919876543210
-# optional overrides:
-uv run python src/make_call.py +919876543210 --subject Chemistry --level "Class 11"
-```
+Verify the Day 9 maths-specialist handoff still works.
 
-The terminal prints `Starting outbound call...` and the agent terminal shows
-`[OUTBOUND]` events plus `executing tool: get_next_exercise`.
+Restart the backend and confirm the data is still available from Supabase.
 
-### Testing checklist
+Confirm no sensitive Supabase credentials are exposed to the frontend.
 
-| Scenario | How to test | Expected |
-| --- | --- | --- |
-| Happy path | Answer, say "Yes, give me today's question" | `exercise requested` -> `exercise returned`, question spoken, feedback, `call completed` |
-| Opt-out | Say "stop calls" / "don't call me" / "unsubscribe" | "Got it. I won't continue this practice call." then `learner opted out` and hangup |
-| Decline today | Say "not now" | Polite sign-off, call ends |
-| No answer | Let it ring out, or keep Linphone offline | `no answer` logged, room closed, no crash |
-| Busy | Reject the call in Linphone | `busy` or `call declined` logged |
-| Voicemail / instant hang-up | Hang up right after connecting | `call completed` / participant disconnect handled cleanly |
-| Exercise tool failure | Ask for an unsupported subject (e.g. History) | "couldn't load today's practice question" - never an invented question |
-| SIP misconfiguration | Unset `SIP_OUTBOUND_TRUNK_ID` | Clear error, browser flow still works |
-| Day 1-5 regression | Open the web app and click Start Conversation | Browser session, memory and `get_next_exercise` all still work |
+Do not modify unrelated functionality. The goal is a clean local-database → Supabase migration while keeping the existing Revora system working exactly as before.
 
-### Call outcome logging
+This project was built with [Lovable](https://lovable.dev).
 
-Every outbound call logs readable events: `call initiated`, `call connected`,
-`learner answered`, `learner opted out`, `exercise requested`,
-`exercise returned`, `exercise tool failed`, `call completed`, `no answer`,
-`busy`, `call declined`, `call failed`.
+## Build with Lovable
 
-The outbound call is always a **scheduled daily practice session** the learner
-opted into — never an unsolicited marketing call. Murf Falcon keeps the spoken
-turns fast and natural enough for a real-time phone conversation.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/ab9772d8-1d07-44e0-a360-3c56703c6d5c).
+
+- **Ship faster**: describe what you want to build and Lovable handles the code.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
-Start the agent in development mode:
+Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
-```bash
-uv run python src/agent.py dev
+```sh
+git clone <this-repository-url>
+cd <repository-name>
+npm i
+npm run dev
 ```
-
-The main backend files are:
-
-```text
-src/
-├── agent.py
-├── prompt.py
-├── memory.py
-└── ...
-```
-
-## License
-
-This project is built for hackathon and educational use.

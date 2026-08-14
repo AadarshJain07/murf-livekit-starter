@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+declare const process: any;
+
 function generateRefId(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let id = "REV-";
@@ -7,22 +9,6 @@ function generateRefId(): string {
     id += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return id;
-}
-
-async function getJsonFilePath(): Promise<string> {
-  const path = await import("node:path");
-  const fs = await import("node:fs");
-
-  const candidatePaths = [
-    path.resolve(process.cwd(), "murf-livekit-starter", "backend", "escalations.json"),
-    path.resolve(process.cwd(), "backend", "escalations.json"),
-    path.resolve(process.cwd(), "src", "backend", "escalations.json"),
-  ];
-
-  for (const p of candidatePaths) {
-    if (fs.existsSync(p)) return p;
-  }
-  return candidatePaths[0]!;
 }
 
 function getUrgencyLabel(urgency: string): string {
@@ -38,7 +24,9 @@ function getEmbedColor(urgency: string): number {
 }
 
 async function sendDiscordNotification(record: any) {
-  const webhookUrl = process.env["DISCORD_TEACHER_WEBHOOK_URL"];
+  const webhookUrl =
+    (typeof process !== "undefined" ? process.env?.["DISCORD_TEACHER_WEBHOOK_URL"] : undefined) ||
+    (import.meta as any).env?.["DISCORD_TEACHER_WEBHOOK_URL"];
   if (!webhookUrl) return;
 
   const now = new Date();
@@ -129,7 +117,7 @@ async function sendDiscordNotification(record: any) {
   }
 }
 
-export const Route = createFileRoute("/api/request-call")({
+export const Route = createFileRoute("/api/request-call" as any)({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {
@@ -159,37 +147,13 @@ export const Route = createFileRoute("/api/request-call")({
             created_at: new Date().toISOString(),
           };
 
-          // Save to JSON file
-          const fs = await import("node:fs");
-          const path = await import("node:path");
-
-          const filePath = await getJsonFilePath();
-          let existingData: { generated_at?: string; escalations: any[] } = { escalations: [] };
-
-          if (fs.existsSync(filePath)) {
-            try {
-              const raw = fs.readFileSync(filePath, "utf-8");
-              if (raw.trim()) {
-                existingData = JSON.parse(raw);
-                if (!Array.isArray(existingData.escalations)) {
-                  existingData.escalations = [];
-                }
-              }
-            } catch (e) {
-              console.error("Error reading JSON file for append:", e);
-            }
+          // Save to Supabase
+          try {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            await supabaseAdmin.from("escalations").insert(record);
+          } catch (e) {
+            console.warn("Failed to insert escalation into Supabase:", e);
           }
-
-          existingData.escalations.unshift(record);
-          existingData.generated_at = new Date().toISOString();
-
-          // Ensure directory exists
-          const dir = path.dirname(filePath);
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-          }
-
-          fs.writeFileSync(filePath, JSON.stringify(existingData, null, 2), "utf-8");
 
           // Post alert to Discord
           await sendDiscordNotification(record);

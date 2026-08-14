@@ -1,12 +1,12 @@
-"""Lightweight FastAPI server exposing Revora analytics data from SQLite.
+"""Lightweight FastAPI server exposing Revora analytics data from Supabase.
 
 Run alongside the LiveKit agent so the deployed frontend can fetch
-live quest state and escalation data from your local machine.
+live quest state and escalation data from Supabase PostgreSQL.
 
 Usage:
     uv run python src/api_server.py
 
-Runs on port 8082 by default (configurable via ANALYTICS_PORT env var).
+Runs on port 8082 by default (configurable via PORT or ANALYTICS_PORT env var).
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from escalations import list_escalations, init_escalations
 
 app = FastAPI(
     title="Revora Analytics API",
-    description="Serves live quest and escalation data from Revora.db",
+    description="Serves live quest and escalation data from Supabase PostgreSQL",
     version="1.0.0",
 )
 
@@ -30,27 +30,27 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
 @app.on_event("startup")
 async def startup():
-    """Ensure DB tables exist before serving."""
+    """Ensure initialization before serving."""
     init_quest()
     init_escalations()
 
 
 @app.get("/api/quest-state")
 async def quest_state():
-    """Return the full quest state computed live from SQLite."""
+    """Return the full quest state computed live from Supabase."""
     return get_state()
 
 
 @app.get("/api/escalations")
 async def escalations():
-    """Return all escalations from SQLite."""
+    """Return all escalations from Supabase."""
     data = list_escalations(status=None)
     return {"escalations": data}
 
@@ -61,8 +61,8 @@ async def health():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("ANALYTICS_PORT", "8082"))
-    print(f"\n[REVORA] Analytics API starting on http://localhost:{port}")
+    port = int(os.getenv("PORT", os.getenv("ANALYTICS_PORT", "8082")))
+    print(f"\n[REVORA] Analytics API starting on http://0.0.0.0:{port}")
     print(f"   GET /api/quest-state   - live quest data")
     print(f"   GET /api/escalations   - escalation tickets")
     print(f"   GET /health            - health check\n")

@@ -93,13 +93,13 @@ function QuestDashboard() {
             </h1>
             <div className="flex flex-wrap items-center gap-4 text-sm md:text-base font-medium">
               <span className="flex items-center gap-1.5 text-blue-400 bg-blue-400/10 px-3 py-1 rounded-md">
-                <Target className="w-4 h-4" /> Level {state?.level ?? 1}
+                <Target className="w-4 h-4" /> Level {state.level}
               </span>
               <span className="flex items-center gap-1.5 text-fuchsia-400 bg-fuchsia-400/10 px-3 py-1 rounded-md">
-                <Activity className="w-4 h-4" /> {state?.xp ?? 0} XP
+                <Activity className="w-4 h-4" /> {state.xp} XP
               </span>
               <span className="flex items-center gap-1.5 text-orange-400 bg-orange-400/10 px-3 py-1 rounded-md">
-                <Flame className="w-4 h-4" /> {state?.streak ?? 0} Day Streak
+                <Flame className="w-4 h-4" /> {state.streak} Day Streak
               </span>
             </div>
           </div>
@@ -135,17 +135,17 @@ function QuestDashboard() {
             <div className="grid grid-cols-3 gap-4 md:gap-8">
               <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-zinc-950/50 border border-zinc-800/50 shadow-inner">
                 <PhoneCall className="w-5 h-5 text-zinc-500 mb-3" />
-                <div className="text-3xl font-black text-white">{state?.sessions?.total ?? 0}</div>
+                <div className="text-3xl font-black text-white">{state.sessions.total}</div>
                 <div className="text-xs text-zinc-500 mt-1 uppercase tracking-wider font-semibold">Total Calls</div>
               </div>
               <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-emerald-950/20 border border-emerald-900/30 shadow-inner">
                 <CheckCircle2 className="w-5 h-5 text-emerald-500 mb-3" />
-                <div className="text-3xl font-black text-emerald-400">{state?.sessions?.successful ?? 0}</div>
+                <div className="text-3xl font-black text-emerald-400">{state.sessions.successful}</div>
                 <div className="text-xs text-emerald-600 mt-1 uppercase tracking-wider font-semibold">Successful</div>
               </div>
               <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-red-950/20 border border-red-900/30 shadow-inner">
                 <XCircle className="w-5 h-5 text-red-500 mb-3" />
-                <div className="text-3xl font-black text-red-400">{state?.sessions?.failed ?? 0}</div>
+                <div className="text-3xl font-black text-red-400">{state.sessions.failed}</div>
                 <div className="text-xs text-red-600 mt-1 uppercase tracking-wider font-semibold">Failed</div>
               </div>
             </div>
@@ -155,7 +155,7 @@ function QuestDashboard() {
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/20 blur-[50px] rounded-full" />
             <div className="text-sm font-bold text-emerald-500 uppercase tracking-widest mb-2 z-10">Success Rate</div>
             <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-emerald-300 to-emerald-600 z-10 drop-shadow-sm">
-              {state?.sessions?.success_rate ?? 0}%
+              {state.sessions.success_rate}%
             </div>
           </div>
         </div>
@@ -170,7 +170,7 @@ function QuestDashboard() {
             </h2>
             
             <div className="space-y-4">
-              {state?.mastery && state.mastery.length > 0 ? state.mastery.map((m: any, idx: number) => (
+              {state.mastery && state.mastery.length > 0 ? state.mastery.map((m: any, idx: number) => (
                 <div key={idx} className="group flex items-center justify-between p-4 rounded-2xl bg-zinc-950/50 hover:bg-zinc-800/50 border border-zinc-800/50 hover:border-zinc-700 transition-all">
                   <div>
                     <div className="text-white font-medium mb-1 group-hover:text-amber-400 transition-colors">
@@ -207,14 +207,20 @@ function QuestDashboard() {
             </h2>
             
             <div className="flex-1 bg-zinc-950/50 rounded-2xl border border-zinc-800/50 p-5">
-              {state?.weaknesses && state.weaknesses.length > 0 ? (
+              {state.weaknesses && state.weaknesses.length > 0 ? (
                 <ul className="space-y-3">
-                  {state.weaknesses.map((w: string, idx: number) => (
-                    <li key={idx} className="flex items-center gap-3 text-zinc-300 font-medium">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                      {w}
-                    </li>
-                  ))}
+                  {state.weaknesses.map((w: any, idx: number) => {
+                    const label = typeof w === "string" ? w : [w?.concept || w?.topic, w?.subject].filter(Boolean).join(" · ");
+                    const acc = typeof w === "object" && w !== null && typeof w.accuracy === "number" ? `${w.accuracy}%` : null;
+                    return (
+                      <li key={idx} className="flex items-center gap-3 text-zinc-300 font-medium">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        <span className="flex-1">{label || "Unknown concept"}</span>
+                        {acc && <span className="text-xs text-zinc-500">{acc}</span>}
+                      </li>
+                    );
+                  })}
+
                 </ul>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center p-4">
@@ -230,7 +236,7 @@ function QuestDashboard() {
         </div>
 
         {/* Next Quest CTA */}
-        {state?.next_quest && (
+        {state.next_quest && (
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-orange-500 to-amber-600 p-1 md:p-1.5">
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
             <div className="relative bg-[#0a0a0a] rounded-[1.3rem] p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-8 z-10">

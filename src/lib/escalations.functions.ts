@@ -1,7 +1,4 @@
-const BACKEND_URL =
-  typeof window !== "undefined"
-    ? (import.meta as any).env?.VITE_BACKEND_URL || ""
-    : "";
+import { getBackendUrl } from "./backend";
 
 export type Escalation = {
   reference_id: string;
@@ -18,6 +15,7 @@ export type Escalation = {
 
 export async function getEscalations(): Promise<Escalation[]> {
   // 1. Try the Python backend API (live data from SQLite)
+  const BACKEND_URL = getBackendUrl();
   if (BACKEND_URL) {
     try {
       const res = await fetch(`${BACKEND_URL}/api/escalations`);
