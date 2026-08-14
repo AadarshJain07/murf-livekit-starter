@@ -605,6 +605,114 @@ class Assistant(Agent):
         )
 
     @function_tool
+    async def handoff_to_physics_specialist(
+        self,
+        context: RunContext,
+        learner_request: str = "",
+        topic: str = "",
+        level: str = "Class 11",
+        context_notes: str = "",
+    ):
+        """
+        Hand the conversation over to Revora's Physics Specialist.
+
+        Use this tool ONLY when the learner needs focused Physics help
+        that is better handled by the Physics Specialist — for example
+        kinematics, projectile motion, Newton's laws, gravitation,
+        work-energy-power, or any Class 11 physics practice request.
+
+        Before calling this tool, tell the learner you are connecting them
+        with the Physics Specialist. Pass the learner's actual request in
+        `learner_request`, the physics topic in `topic`, and only safe study
+        context in `context_notes` — never passwords, OTPs, PINs, account
+        numbers, phone numbers or a full transcript.
+        """
+
+        try:
+            from specialists import build_physics_specialist
+
+            specialist = build_physics_specialist(
+                origin=self,
+                learner_request=learner_request,
+                topic=topic,
+                level=level,
+                context_notes=context_notes,
+            )
+        except Exception as error:  # noqa: BLE001 - never drop the call
+            logger.error("Physics Specialist handoff failed: %s", error)
+            return (
+                "The Physics Specialist could not be started, so no handoff "
+                "happened. Tell the learner briefly that the specialist is "
+                "unavailable right now and keep helping them with physics "
+                "yourself."
+            )
+
+        logger.info(
+            "Handing off to Physics Specialist (topic=%s)", topic or "unspecified"
+        )
+
+        return (
+            specialist,
+            "You are now Revora's Physics Specialist. Introduce yourself in one "
+            "short sentence and continue directly from the learner's request "
+            "without asking them to repeat it.",
+        )
+
+    @function_tool
+    async def handoff_to_chemistry_specialist(
+        self,
+        context: RunContext,
+        learner_request: str = "",
+        topic: str = "",
+        level: str = "Class 11",
+        context_notes: str = "",
+    ):
+        """
+        Hand the conversation over to Revora's Chemistry Specialist.
+
+        Use this tool ONLY when the learner needs focused Chemistry help
+        that is better handled by the Chemistry Specialist — for example
+        atomic structure, periodic trends, chemical bonding, mole concept,
+        thermodynamics, or any Class 11 chemistry practice request.
+
+        Before calling this tool, tell the learner you are connecting them
+        with the Chemistry Specialist. Pass the learner's actual request in
+        `learner_request`, the chemistry topic in `topic`, and only safe study
+        context in `context_notes` — never passwords, OTPs, PINs, account
+        numbers, phone numbers or a full transcript.
+        """
+
+        try:
+            from specialists import build_chemistry_specialist
+
+            specialist = build_chemistry_specialist(
+                origin=self,
+                learner_request=learner_request,
+                topic=topic,
+                level=level,
+                context_notes=context_notes,
+            )
+        except Exception as error:  # noqa: BLE001 - never drop the call
+            logger.error("Chemistry Specialist handoff failed: %s", error)
+            return (
+                "The Chemistry Specialist could not be started, so no handoff "
+                "happened. Tell the learner briefly that the specialist is "
+                "unavailable right now and keep helping them with chemistry "
+                "yourself."
+            )
+
+        logger.info(
+            "Handing off to Chemistry Specialist (topic=%s)", topic or "unspecified"
+        )
+
+        return (
+            specialist,
+            "You are now Revora's Chemistry Specialist. Introduce yourself in one "
+            "short sentence and continue directly from the learner's request "
+            "without asking them to repeat it.",
+        )
+
+    @function_tool
 
     async def end_call(
         self,
