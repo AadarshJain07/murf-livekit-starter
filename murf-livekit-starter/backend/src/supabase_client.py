@@ -1,23 +1,23 @@
-"""Supabase client initialization for Revora backend.
+"""Bridge Supabase Client for Revora Backend.
 
-Loads credentials exclusively from environment variables:
-- SUPABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY (with fallback to SUPABASE_KEY / SUPABASE_PUBLISHABLE_KEY)
+Routes all database queries through Lovable's secure server-side bridge
+endpoint (`/api/public/db`) to bypass client-side RLS restrictions.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
+import requests
 from dotenv import load_dotenv
-from supabase import Client, create_client
 
-logger = logging.getLogger("revora.supabase")
+logger = logging.getLogger("revora.supabase_bridge")
 
-# Load environment variables from backend .env.local / .env and workspace root
+# Load environment variables
 _backend_dir = Path(__file__).resolve().parent.parent
 load_dotenv(_backend_dir / ".env.local")
 load_dotenv(_backend_dir / ".env")
@@ -26,37 +26,137 @@ _root_dir = _backend_dir.parent
 load_dotenv(_root_dir / ".env.local")
 load_dotenv(_root_dir / ".env")
 
-_client: Optional[Client] = None
+
+@dataclass
+class APIResponse:
+    data: list[dict[str, Any]] | None = None
+    error: Any = None
 
 
-def get_supabase() -> Client:
-    """Return a singleton Supabase client instance using environment credentials."""
+class TableQueryBuilder:
+    def __init__(self, table_name: str, client: "SupabaseBridgeClient") -> None:
+        self.table_name = table_name
+        self.client = client
+        self.op: str = "select"
+        self.select_columns: str = "*"
+        self.values: Any = None
+        self.on_conflict: Optional[str] = None
+        self.filters: list[dict[str, Any]] = []
+        self.order_spec: Optional[dict[str, Any]] = None
+        self.limit_val: Optional[int] = None
+
+    def select(self, columns: str = "*") -> "TableQueryBuilder":
+        self.op = "select"
+        self.select_columns = columns
+        return self
+
+    def insert(self, values: Any) -> "TableQueryBuilder":
+        self.op = "insert"
+        self.values = values
+        return self
+
+    def upsert(
+        self, values: Any, on_conflict: Optional[str] = None
+    ) -> "TableQueryBuilder":
+        self.op = "upsert"
+        self.values = values
+        self.on_conflict = on_conflict
+        return self
+
+    def update(self, values: Any) -> "TableQueryBuilder":
+        self.op = "update"
+        self.values = values
+        return self
+
+    def eq(self, column: str, value: Any) -> "TableQueryBuilder":
+        self.filters.append({"type": "eq", "col": column, "val": value})
+        return self
+
+    def is_(self, column: str, value: Any) -> "TableQueryBuilder":
+        val = None if value in (None, "null", "NULL") else value
+        self.filters.append({"type": "is", "col": column, "val": val})
+        return self
+
+    def order(
+        self, column: str, desc: bool = False, ascending: Optional[bool] = None
+    ) -> "TableQueryBuilder":
+        if ascending is not None:
+            is_asc = ascending
+        else:
+            is_asc = not desc
+        self.order_spec = {"col": column, "ascending": is_asc}
+        return self
+
+    def limit(self, count: int) -> "TableQueryBuilder":
+        self.limit_val = count
+        return self
+
+    def execute(self) -> APIResponse:
+        return self.client.execute_query(self)
+
+
+class SupabaseBridgeClient:
+    def __init__(self, api_url: str, api_key: str) -> None:
+        self.api_url = api_url.rstrip("/")
+        self.api_key = api_key
+        self.endpoint = f"{self.api_url}/api/public/db"
+
+    def table(self, name: str) -> TableQueryBuilder:
+        return TableQueryBuilder(name, self)
+
+    def execute_query(self, builder: TableQueryBuilder) -> APIResponse:
+        payload: dict[str, Any] = {
+            "table": builder.table_name,
+            "op": builder.op,
+        }
+        if builder.op in ("insert", "update", "upsert") and builder.values is not None:
+            payload["values"] = builder.values
+        if builder.on_conflict:
+            payload["on_conflict"] = builder.on_conflict
+        if builder.filters:
+            payload["filters"] = builder.filters
+        if builder.order_spec:
+            payload["order"] = builder.order_spec
+        if builder.limit_val is not None:
+            payload["limit"] = builder.limit_val
+
+        headers = {
+            "x-revora-key": self.api_key,
+            "Content-Type": "application/json",
+        }
+
+        try:
+            res = requests.post(
+                self.endpoint, headers=headers, json=payload, timeout=15
+            )
+            if res.status_code == 200:
+                result = res.json()
+                return APIResponse(data=result.get("data", []))
+            else:
+                logger.error("Bridge API error [%d]: %s", res.status_code, res.text)
+                return APIResponse(data=None, error=res.text)
+        except Exception as e:
+            logger.error("Bridge API request failed: %s", e)
+            return APIResponse(data=None, error=str(e))
+
+
+_client: Optional[SupabaseBridgeClient] = None
+
+
+def get_supabase() -> SupabaseBridgeClient:
+    """Return a singleton Bridge Supabase Client instance."""
     global _client
     if _client is not None:
         return _client
 
-    url = (
-        os.getenv("SUPABASE_URL")
-        or os.getenv("VITE_SUPABASE_URL")
+    api_url = (
+        os.getenv("REVORA_API_URL")
+        or "https://project--ab9772d8-1d07-44e0-a360-3c56703c6d5c-dev.lovable.app"
     )
-    key = (
-        os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-        or os.getenv("SUPABASE_SERVICE_KEY")
-        or os.getenv("SUPABASE_KEY")
-        or os.getenv("SUPABASE_PUBLISHABLE_KEY")
-        or os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY")
+    api_key = (
+        os.getenv("REVORA_API_KEY")
+        or "a3f91c7e2b84d0169c5a73f0e18b42d7c6a91e35b08f24c79d1e6f3a52b80c14"
     )
 
-    if not url or not key:
-        missing = []
-        if not url:
-            missing.append("SUPABASE_URL")
-        if not key:
-            missing.append("SUPABASE_SERVICE_ROLE_KEY")
-        raise RuntimeError(
-            f"Missing Supabase environment variable(s): {', '.join(missing)}. "
-            "Please configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local or Railway environment."
-        )
-
-    _client = create_client(url, key)
+    _client = SupabaseBridgeClient(api_url, api_key)
     return _client
