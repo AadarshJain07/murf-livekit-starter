@@ -4,44 +4,62 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 from agent import Assistant
+from debate_specialist import DebateSpecialist, build_debate_specialist
 from maths_specialist import MathsSpecialist, build_maths_specialist
+from physics_specialist import PhysicsSpecialist, build_physics_specialist
+from chemistry_specialist import ChemistrySpecialist, build_chemistry_specialist
 from prompt import MULTI_SPECIALIST_ROUTER_PROMPT, SYSTEM_PROMPT
 from specialists import (
+    CHEMISTRY_SPECIALIST_VOICE,
+    DEBATE_SPECIALIST_VOICE,
+    MATHS_SPECIALIST_VOICE,
+    PHYSICS_SPECIALIST_VOICE,
     BaseSpecialist,
-    ChemistrySpecialist,
-    PhysicsSpecialist,
-    build_chemistry_specialist,
-    build_physics_specialist,
 )
 
 
-def test_router_prompt_contains_all_domains():
-    """Verify that the router prompt includes rules for all domains and return instructions."""
+def test_router_prompt_contains_all_domains_and_explicit_rules():
+    """Verify that the router prompt includes rules for all domains, voices, and explicit triggers."""
     assert "MULTI-SPECIALIST LEARNING ROUTER" in SYSTEM_PROMPT
     assert "handoff_to_maths_specialist" in SYSTEM_PROMPT
     assert "handoff_to_physics_specialist" in SYSTEM_PROMPT
     assert "handoff_to_chemistry_specialist" in SYSTEM_PROMPT
+    assert "handoff_to_debate_specialist" in SYSTEM_PROMPT
     assert "Maths Specialist" in SYSTEM_PROMPT
     assert "Physics Specialist" in SYSTEM_PROMPT
     assert "Chemistry Specialist" in SYSTEM_PROMPT
-    assert "SPECIALIST LEARNING SUMMARY" in MULTI_SPECIALIST_ROUTER_PROMPT or "learning summary" in MULTI_SPECIALIST_ROUTER_PROMPT
+    assert "Debate Specialist" in SYSTEM_PROMPT
+    assert "Samar" in SYSTEM_PROMPT
+    assert "Pooja" in SYSTEM_PROMPT
+    assert "Abhinav" in SYSTEM_PROMPT
+    assert "ONLY ON EXPLICIT REQUEST" in MULTI_SPECIALIST_ROUTER_PROMPT
+    assert "WHEN NOT TO HAND OFF" in MULTI_SPECIALIST_ROUTER_PROMPT
 
 
-def test_assistant_has_specialist_tools():
-    """Verify Assistant has all three specialist handoff tools."""
+def test_assistant_has_all_specialist_tools():
+    """Verify Assistant has all specialist handoff tools."""
     assistant = Assistant(user_id="test-user")
     tools = [tool.info.name for tool in assistant.tools]
 
     assert "handoff_to_maths_specialist" in tools
     assert "handoff_to_physics_specialist" in tools
     assert "handoff_to_chemistry_specialist" in tools
+    assert "handoff_to_debate_specialist" in tools
     assert "start_quest" in tools
     assert "record_quest_answer" in tools
 
 
+def test_specialist_voices_configuration():
+    """Verify exact specialist voices as required."""
+    assert MATHS_SPECIALIST_VOICE == "samar"
+    assert PHYSICS_SPECIALIST_VOICE == "pooja"
+    assert CHEMISTRY_SPECIALIST_VOICE == "abhinav"
+    assert DEBATE_SPECIALIST_VOICE == "marcus"
+
+
 @pytest.mark.asyncio
-async def test_maths_specialist_creation_and_context():
-    """Verify build_maths_specialist injects request, topic, and context cleanly."""
+async def test_maths_specialist_creation_voice_and_context():
+    """Verify build_maths_specialist injects request, topic, voice (Samar), and context cleanly."""
     assistant = Assistant(user_id="test-user")
     
     with patch("specialists.get_user_memory", return_value={"name": "Aarav", "language_preference": "English"}):
@@ -57,6 +75,7 @@ async def test_maths_specialist_creation_and_context():
     assert isinstance(specialist, BaseSpecialist)
     assert specialist.user_id == "test-user"
     assert specialist.domain_name == "Maths"
+    assert specialist.voice == "samar"
     assert "Quadratic Equations" in specialist.instructions
     assert "Can you help me factor x^2 - 5x + 6?" in specialist.instructions
     assert "Aarav" in specialist.instructions
@@ -64,8 +83,8 @@ async def test_maths_specialist_creation_and_context():
 
 
 @pytest.mark.asyncio
-async def test_physics_specialist_creation_and_context():
-    """Verify build_physics_specialist creates PhysicsSpecialist with domain prompt and context."""
+async def test_physics_specialist_creation_voice_and_context():
+    """Verify build_physics_specialist creates PhysicsSpecialist with Pooja voice and context."""
     assistant = Assistant(user_id="test-user")
     
     with patch("specialists.get_user_memory", return_value={"name": "Priya"}):
@@ -78,14 +97,15 @@ async def test_physics_specialist_creation_and_context():
 
     assert isinstance(specialist, PhysicsSpecialist)
     assert specialist.domain_name == "Physics"
+    assert specialist.voice == "pooja"
     assert "Kinematics" in specialist.instructions
     assert "projectile motion" in specialist.instructions
     assert "Priya" in specialist.instructions
 
 
 @pytest.mark.asyncio
-async def test_chemistry_specialist_creation_and_context():
-    """Verify build_chemistry_specialist creates ChemistrySpecialist with domain prompt and context."""
+async def test_chemistry_specialist_creation_voice_and_context():
+    """Verify build_chemistry_specialist creates ChemistrySpecialist with Abhinav voice and context."""
     assistant = Assistant(user_id="test-user")
     
     specialist = build_chemistry_specialist(
@@ -97,8 +117,29 @@ async def test_chemistry_specialist_creation_and_context():
 
     assert isinstance(specialist, ChemistrySpecialist)
     assert specialist.domain_name == "Chemistry"
+    assert specialist.voice == "abhinav"
     assert "Mole Concept" in specialist.instructions
     assert "18g of water" in specialist.instructions
+
+
+@pytest.mark.asyncio
+async def test_debate_specialist_creation_and_context():
+    """Verify build_debate_specialist creates DebateSpecialist with debate prompt and stance."""
+    assistant = Assistant(user_id="test-user")
+
+    specialist = build_debate_specialist(
+        origin=assistant,
+        topic="AI in education",
+        learner_position="AI should replace traditional homework",
+        context_notes="Student enjoys philosophy and tech",
+    )
+
+    assert isinstance(specialist, DebateSpecialist)
+    assert specialist.domain_name == "Debate"
+    assert specialist.voice == "marcus"
+    assert "AI in education" in specialist.instructions
+    assert "AI should replace traditional homework" in specialist.instructions
+    assert "Debate Mode" in specialist.instructions
 
 
 @pytest.mark.asyncio
@@ -140,3 +181,7 @@ async def test_specialist_blocks_duplicate_handoff():
     mock_context = MagicMock()
     response = await maths_specialist.handoff_to_maths_specialist(context=mock_context)
     assert "already the Maths Specialist" in response
+
+    debate_specialist = build_debate_specialist(origin=origin_assistant)
+    debate_response = await debate_specialist.handoff_to_debate_specialist(context=mock_context)
+    assert "already in Debate Mode" in debate_response

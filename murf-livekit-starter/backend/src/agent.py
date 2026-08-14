@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from dotenv import load_dotenv
 from livekit import api, rtc
@@ -47,11 +50,12 @@ load_dotenv(".env.local")
 class Assistant(Agent):
     def __init__(
         self,
-        user_id: str,
+        user_id: str = "demo-student-001",
         instructions: str = SYSTEM_PROMPT,
         ctx: JobContext | None = None,
         outbound: bool = False,
         call_session_id: str = "",
+        tts: Any = None,
     ) -> None:
         self.user_id = user_id
         # Only set for outbound phone calls; the browser session ignores these.
@@ -61,9 +65,11 @@ class Assistant(Agent):
         # Every quest tool must write to THIS session, never create a new one.
         self.call_session_id = call_session_id
 
-        super().__init__(
-            instructions=instructions,
-        )
+        kwargs = {"instructions": instructions}
+        if tts is not None:
+            kwargs["tts"] = tts
+
+        super().__init__(**kwargs)
 
     def _session(self, session_id: str = "") -> str:
         """Always resolve to this call's session row."""
@@ -557,21 +563,20 @@ class Assistant(Agent):
         context_notes: str = "",
     ):
         """
-        Hand the conversation over to Revora's Maths Specialist.
+        Hand the conversation over to Revora's Maths Specialist (Voice: Samar).
 
-        Use this tool ONLY when the learner needs focused Mathematics help
-        that is better handled by the Maths Specialist — for example solving
-        a quadratic equation, permutations and combinations, limits,
-        trigonometry practice, or any Class 11 maths practice request.
+        Use this tool ONLY when the learner EXPLICITLY asks for the Maths Specialist —
+        for example: "Connect me to the Maths specialist", "I want to talk to the
+        Maths specialist", "Can I speak with the Maths expert?", or "I need a Maths
+        specialist to help me."
 
-        Do NOT use it for Physics, Chemistry, Biology, questions about how
-        Revora works, the learner's history, greetings, or casual chat.
+        Do NOT use this tool for normal Maths questions (e.g. "How do I solve a quadratic
+        equation?") — answer normal subject questions yourself directly as Revora.
 
-        Before calling this tool, tell the learner you are connecting them
-        with the Maths Specialist. Pass the learner's actual request in
-        `learner_request`, the maths topic in `topic`, and only safe study
-        context in `context_notes` — never passwords, OTPs, PINs, account
-        numbers, phone numbers or a full transcript.
+        Before calling this tool, say aloud:
+        "Sure, I'll connect you to our Maths Specialist."
+        Pass the learner's request in `learner_request`, the topic in `topic`, and only
+        safe study context in `context_notes`.
         """
 
         try:
@@ -614,18 +619,19 @@ class Assistant(Agent):
         context_notes: str = "",
     ):
         """
-        Hand the conversation over to Revora's Physics Specialist.
+        Hand the conversation over to Revora's Physics Specialist (Voice: Pooja).
 
-        Use this tool ONLY when the learner needs focused Physics help
-        that is better handled by the Physics Specialist — for example
-        kinematics, projectile motion, Newton's laws, gravitation,
-        work-energy-power, or any Class 11 physics practice request.
+        Use this tool ONLY when the learner EXPLICITLY asks for the Physics Specialist —
+        for example: "I want to talk to the Physics Specialist", "Connect me to the
+        Physics expert", or "Can I speak with the Physics specialist?"
 
-        Before calling this tool, tell the learner you are connecting them
-        with the Physics Specialist. Pass the learner's actual request in
-        `learner_request`, the physics topic in `topic`, and only safe study
-        context in `context_notes` — never passwords, OTPs, PINs, account
-        numbers, phone numbers or a full transcript.
+        Do NOT use this tool for normal Physics questions (e.g. "What is Newton's Second Law?") —
+        answer normal subject questions yourself directly as Revora.
+
+        Before calling this tool, say aloud:
+        "Sure, I'll connect you to our Physics Specialist."
+        Pass the learner's request in `learner_request`, the topic in `topic`, and only
+        safe study context in `context_notes`.
         """
 
         try:
@@ -668,18 +674,19 @@ class Assistant(Agent):
         context_notes: str = "",
     ):
         """
-        Hand the conversation over to Revora's Chemistry Specialist.
+        Hand the conversation over to Revora's Chemistry Specialist (Voice: Abhinav).
 
-        Use this tool ONLY when the learner needs focused Chemistry help
-        that is better handled by the Chemistry Specialist — for example
-        atomic structure, periodic trends, chemical bonding, mole concept,
-        thermodynamics, or any Class 11 chemistry practice request.
+        Use this tool ONLY when the learner EXPLICITLY asks for the Chemistry Specialist —
+        for example: "Connect me to the Chemistry Specialist", "Can I speak with the
+        Chemistry expert?", or "I need a Chemistry specialist."
 
-        Before calling this tool, tell the learner you are connecting them
-        with the Chemistry Specialist. Pass the learner's actual request in
-        `learner_request`, the chemistry topic in `topic`, and only safe study
-        context in `context_notes` — never passwords, OTPs, PINs, account
-        numbers, phone numbers or a full transcript.
+        Do NOT use this tool for normal Chemistry questions (e.g. "Explain chemical bonding") —
+        answer normal subject questions yourself directly as Revora.
+
+        Before calling this tool, say aloud:
+        "Sure, I'll connect you to our Chemistry Specialist."
+        Pass the learner's request in `learner_request`, the topic in `topic`, and only
+        safe study context in `context_notes`.
         """
 
         try:
@@ -710,6 +717,59 @@ class Assistant(Agent):
             "You are now Revora's Chemistry Specialist. Introduce yourself in one "
             "short sentence and continue directly from the learner's request "
             "without asking them to repeat it.",
+        )
+
+    @function_tool
+    async def handoff_to_debate_specialist(
+        self,
+        context: RunContext,
+        topic: str = "",
+        learner_position: str = "",
+        context_notes: str = "",
+    ):
+        """
+        Hand the conversation over to Revora's Debate Specialist (Debate Mode).
+
+        Use this tool ONLY when the learner EXPLICITLY requests to debate or
+        enter Debate Mode — for example: "I want to debate this", "Let's debate
+        this topic", "Put me in Debate Mode", or "I want to debate whether AI
+        should replace homework."
+
+        Do NOT use it when the learner simply expresses an opinion or discusses a topic.
+
+        Before calling this tool, say aloud:
+        "Absolutely. I'll switch you to Debate Mode."
+        Pass the debate topic in `topic`, the learner's stance/opinion in
+        `learner_position`, and safe context notes in `context_notes`.
+        """
+
+        try:
+            from debate_specialist import build_debate_specialist
+
+            specialist = build_debate_specialist(
+                origin=self,
+                topic=topic,
+                learner_position=learner_position,
+                context_notes=context_notes,
+            )
+        except Exception as error:  # noqa: BLE001 - never drop the call
+            logger.error("Debate Specialist handoff failed: %s", error)
+            return (
+                "The Debate Specialist could not be started, so no handoff "
+                "happened. Tell the learner briefly that Debate Mode is "
+                "unavailable right now and keep discussing the topic yourself."
+            )
+
+        logger.info(
+            "Handing off to Debate Specialist (topic=%s)", topic or "unspecified"
+        )
+
+        return (
+            specialist,
+            "You are now Revora's Debate Specialist. Introduce yourself in one "
+            "short sentence and take a counter-position or open the debate "
+            "directly based on the learner's topic and position without asking "
+            "them to repeat it.",
         )
 
     @function_tool

@@ -10,19 +10,27 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Optional
 
-from livekit.agents import RunContext, function_tool
+from livekit.agents import RunContext, function_tool, tokenize
+from livekit.plugins import murf
 
 from agent import Assistant
 from memory import get_user_memory
 from quest import get_state
 from specialist_prompts import (
     CHEMISTRY_SPECIALIST_PROMPT,
+    DEBATE_SPECIALIST_PROMPT,
     MATHS_SPECIALIST_PROMPT,
     PHYSICS_SPECIALIST_PROMPT,
     build_specialist_instructions,
 )
 
 logger = logging.getLogger("agent.specialists")
+
+# Specialist Voice Configurations (Murf TTS)
+MATHS_SPECIALIST_VOICE = "samar"
+PHYSICS_SPECIALIST_VOICE = "pooja"
+CHEMISTRY_SPECIALIST_VOICE = "abhinav"
+DEBATE_SPECIALIST_VOICE = "marcus"
 
 
 class SpecialistAssistant:
@@ -38,15 +46,38 @@ class BaseSpecialist(Assistant):
         origin: Assistant,
         instructions: str,
         domain_name: str,
+        voice: str | None = None,
     ) -> None:
         self._origin = origin
         self.domain_name = domain_name
+        self.voice = voice
+
+        specialist_tts = None
+        if voice:
+            try:
+                specialist_tts = murf.TTS(
+                    voice=voice,
+                    style="Conversation",
+                    tokenizer=tokenize.basic.SentenceTokenizer(
+                        min_sentence_len=2
+                    ),
+                    text_pacing=True,
+                )
+            except Exception as err:
+                logger.warning(
+                    "Could not initialize custom TTS for %s specialist (%s): %s",
+                    domain_name,
+                    voice,
+                    err,
+                )
+
         super().__init__(
             user_id=origin.user_id,
             instructions=instructions,
             ctx=origin.ctx,
             outbound=origin.outbound,
             call_session_id=origin.call_session_id,
+            tts=specialist_tts,
         )
 
     @function_tool
@@ -121,6 +152,7 @@ class MathsSpecialist(BaseSpecialist):
             origin=origin,
             instructions=instructions,
             domain_name="Maths",
+            voice=MATHS_SPECIALIST_VOICE,
         )
 
     @function_tool
@@ -144,6 +176,7 @@ class PhysicsSpecialist(BaseSpecialist):
             origin=origin,
             instructions=instructions,
             domain_name="Physics",
+            voice=PHYSICS_SPECIALIST_VOICE,
         )
 
     @function_tool
@@ -167,6 +200,7 @@ class ChemistrySpecialist(BaseSpecialist):
             origin=origin,
             instructions=instructions,
             domain_name="Chemistry",
+            voice=CHEMISTRY_SPECIALIST_VOICE,
         )
 
     @function_tool
@@ -180,6 +214,29 @@ class ChemistrySpecialist(BaseSpecialist):
     ) -> str:
         """Already speaking with the Chemistry Specialist."""
         return "You are already the Chemistry Specialist. Continue helping with Chemistry yourself."
+
+
+class DebateSpecialist(BaseSpecialist):
+    """Intellectual sparring partner and debate coach handed the learner by Revora."""
+
+    def __init__(self, origin: Assistant, instructions: str) -> None:
+        super().__init__(
+            origin=origin,
+            instructions=instructions,
+            domain_name="Debate",
+            voice=DEBATE_SPECIALIST_VOICE,
+        )
+
+    @function_tool
+    async def handoff_to_debate_specialist(
+        self,
+        context: RunContext,
+        topic: str = "",
+        learner_position: str = "",
+        context_notes: str = "",
+    ) -> str:
+        """Already in Debate Mode with the Debate Specialist."""
+        return "You are already in Debate Mode with the Debate Specialist. Continue the debate."
 
 
 def _extract_student_context(origin: Assistant, subject: str, topic: str) -> dict:
@@ -304,3 +361,46 @@ def build_chemistry_specialist(
         origin=origin,
         instructions=instructions,
     )
+
+
+def build_debate_specialist(
+    origin: Assistant,
+    topic: str = "",
+    learner_position: str = "",
+    context_notes: str = "",
+) -> DebateSpecialist:
+    """Create the Debate specialist with safe handoff context injected."""
+    ctx_data = _extract_student_context(origin, "Debate", topic)
+    instructions = build_specialist_instructions(
+        subject="Debate",
+        base_prompt=DEBATE_SPECIALIST_PROMPT,
+        learner_request=learner_position or topic,
+        topic=topic,
+        level="Debate Mode",
+        student_name=ctx_data["student_name"],
+        language_preference=ctx_data["language_preference"],
+        mastery_info=ctx_data["mastery_info"],
+        weakness_info=ctx_data["weakness_info"],
+        context_notes=context_notes,
+    )
+    return DebateSpecialist(
+        origin=origin,
+        instructions=instructions,
+    )
+
+
+__all__ = [
+    "BaseSpecialist",
+    "MathsSpecialist",
+    "PhysicsSpecialist",
+    "ChemistrySpecialist",
+    "DebateSpecialist",
+    "MATHS_SPECIALIST_VOICE",
+    "PHYSICS_SPECIALIST_VOICE",
+    "CHEMISTRY_SPECIALIST_VOICE",
+    "DEBATE_SPECIALIST_VOICE",
+    "build_maths_specialist",
+    "build_physics_specialist",
+    "build_chemistry_specialist",
+    "build_debate_specialist",
+]
