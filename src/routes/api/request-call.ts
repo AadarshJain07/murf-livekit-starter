@@ -117,7 +117,7 @@ async function sendDiscordNotification(record: any) {
   }
 }
 
-export const Route = createFileRoute("/api/request-call" as any)({
+export const Route = createFileRoute("/api/request-call")({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {

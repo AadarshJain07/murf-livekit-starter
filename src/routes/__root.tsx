@@ -77,19 +77,35 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Revora AI — Voice-First AI Tutor for Indian Students" },
+      {
+        name: "description",
+        content:
+          "Revora AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish.",
+      },
+      { property: "og:title", content: "Revora AI — Voice-First AI Tutor for Indian Students" },
+      {
+        property: "og:description",
+        content:
+          "Revora AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Revora AI — Voice-First AI Tutor for Indian Students" },
+      { name: "twitter:description", content: "Revora AI is a voice-first AI tutor that explains concepts, runs quizzes and revises lessons in English, Hindi and Hinglish." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/224bfa116123eb84c0497302aa11db1b/id-preview-dcee3ca9--ab9772d8-1d07-44e0-a360-3c56703c6d5c.lovable.app-1786706926163.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/224bfa116123eb84c0497302aa11db1b/id-preview-dcee3ca9--ab9772d8-1d07-44e0-a360-3c56703c6d5c.lovable.app-1786706926163.png" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],

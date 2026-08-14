@@ -17,7 +17,7 @@ export type Escalation = {
 /**
  * API route to fetch teacher support escalations from Supabase.
  */
-export const Route = createFileRoute("/api/escalations" as any)({
+export const Route = createFileRoute("/api/escalations")({
   server: {
     handlers: {
       GET: async () => {
