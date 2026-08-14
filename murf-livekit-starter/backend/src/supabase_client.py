@@ -1,7 +1,7 @@
 """Bridge Supabase Client for Revora Backend.
 
 Routes all database queries through Lovable's secure server-side bridge
-endpoint (`/api/public/db`) to bypass client-side RLS restrictions.
+endpoint (`/api/public/db`) with connection pooling and fast timeouts.
 """
 
 from __future__ import annotations
@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from dotenv import load_dotenv
 
 logger = logging.getLogger("revora.supabase_bridge")
@@ -100,6 +102,13 @@ class SupabaseBridgeClient:
         self.api_url = api_url.rstrip("/")
         self.api_key = api_key
         self.endpoint = f"{self.api_url}/api/public/db"
+        
+        # Setup persistent connection session with retry & keepalive
+        self.session = requests.Session()
+        retries = Retry(total=2, backoff_factor=0.2, status_forcelist=[502, 503, 504])
+        adapter = HTTPAdapter(pool_connections=10, pool_maxsize=20, max_retries=retries)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
 
     def table(self, name: str) -> TableQueryBuilder:
         return TableQueryBuilder(name, self)
@@ -126,8 +135,8 @@ class SupabaseBridgeClient:
         }
 
         try:
-            res = requests.post(
-                self.endpoint, headers=headers, json=payload, timeout=15
+            res = self.session.post(
+                self.endpoint, headers=headers, json=payload, timeout=5.0
             )
             if res.status_code == 200:
                 result = res.json()
@@ -151,7 +160,7 @@ def get_supabase() -> SupabaseBridgeClient:
 
     api_url = (
         os.getenv("REVORA_API_URL")
-        or "https://project--ab9772d8-1d07-44e0-a360-3c56703c6d5c-dev.lovable.app"
+        or "https://revora-cloud-quest.lovable.app"
     )
     api_key = (
         os.getenv("REVORA_API_KEY")
