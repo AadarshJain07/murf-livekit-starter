@@ -11,7 +11,7 @@ const defaultQuestState = {
   next_quest: null,
 };
 
-export const Route = createFileRoute("/api/quest" as any)({
+export const Route = createFileRoute("/api/quest")({
   server: {
     handlers: {
       GET: async () => {
