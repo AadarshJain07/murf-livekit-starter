@@ -1,10 +1,14 @@
-<!-- LOVABLE:BEGIN -->
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
-<!-- LOVABLE:END -->
+# Revora AI — Development Guide
+
+Revora is an autonomous voice learning assistant and multi-specialist tutor system for Class 11 students.
+
+## Architecture
+
+- **Backend**: Python LiveKit Agent, Murf Falcon TTS, Deepgram STT, Google Gemini LLM, Supabase DB.
+- **Frontend**: TanStack Start / React, Tailwind CSS, LiveKit Web SDK.
+
+## Key Guidelines
+
+- Keep the multi-specialist learning router operational across Maths, Physics, Chemistry, and General subjects.
+- Ensure state persistence (quests, mastery, memory, escalations) remains connected to Supabase PostgreSQL.
+- Maintain test coverage across router and voice combat logic.

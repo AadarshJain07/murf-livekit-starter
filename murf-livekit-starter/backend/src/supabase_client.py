@@ -1,6 +1,6 @@
 """Bridge Supabase Client for Revora Backend.
 
-Routes all database queries through Lovable's secure server-side bridge
+Routes all database queries through Revora's secure server-side bridge
 endpoint (`/api/public/db`) with connection pooling and fast timeouts.
 """
 
@@ -160,7 +160,7 @@ def get_supabase() -> SupabaseBridgeClient:
 
     api_url = (
         os.getenv("REVORA_API_URL")
-        or "https://revora-cloud-quest.lovable.app"
+        or "http://localhost:3000"
     )
     api_key = (
         os.getenv("REVORA_API_KEY")
