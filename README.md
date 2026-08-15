@@ -8,16 +8,15 @@ Built for the **10 Days of Voice Agents — #VoiceForBharat Edition** powered by
 
 ## Demo & Repository
 
-- **Live Demo**: `YOUR_DEMO_LINK`
-- **GitHub Repository**: `YOUR_GITHUB_LINK`
+- **GitHub Repository**: `https://github.com/AadarshJain07/murf-livekit-starter/edit/day10`
 
 ---
 
 ## Problem
 
-Class 11 is one of the most challenging transitions in the Indian school curriculum (CBSE, ICSE, State Boards, JEE, NEET). Students face vast syllabi in Physics, Chemistry, and Mathematics, often leading to conceptual overload, passive reading fatigue, and isolation during late-night self-study.
+Students across India—from school learners to those preparing for competitive exams like JEE and NEET—face vast syllabi in Physics, Chemistry, Mathematics, and other subjects. This can lead to conceptual overload, passive reading fatigue, and a lack of personalized support during self-study.
 
-Traditional text-based chat apps fail to replicate the dynamic, interactive rhythm of an authentic one-on-one tutor. **Revora AI solves this with voice**:
+Traditional text-based chat apps often fail to replicate the dynamic, interactive rhythm of an authentic one-on-one tutor. Revora AI solves this with voice, enabling students to ask questions, discuss concepts, practice, and learn through natural conversations.
 
 1. **Active Recall over Passive Scrolling**: Conversational quizzing and teach-back challenges force students to articulate explanations aloud, solidifying understanding.
 2. **Multilingual & Natural**: Speaks English, pure Hindi (Devanagari script), and colloquial Hinglish naturally without forced code-switching.
